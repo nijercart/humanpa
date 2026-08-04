@@ -52,7 +52,9 @@ function Landing() {
           </p>
           <div className="mt-10 flex flex-wrap items-center gap-3">
             <Button asChild size="lg">
-              <Link to="/auth">Start with a problem</Link>
+              <Link to={user ? "/needs" : "/auth"}>
+                {user ? "Go to your problems" : "Start with a problem"}
+              </Link>
             </Button>
             <span className="text-sm text-muted-foreground">Free while in preview.</span>
           </div>

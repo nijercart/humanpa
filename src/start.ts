@@ -4,6 +4,7 @@ import { renderErrorPage } from "./lib/error-page";
 // Project-specific bearer attacher (retries a session refresh) replaces the
 // generated attachSupabaseAuth.
 import { attachBearer } from "@/lib/supabase-bearer";
+import { attachSupabaseAuth } from "@/integrations/supabase/auth-attacher";
 
 const errorMiddleware = createMiddleware().server(async ({ next }) => {
   try {
@@ -28,6 +29,6 @@ const csrfMiddleware = createCsrfMiddleware({
 });
 
 export const startInstance = createStart(() => ({
-  functionMiddleware: [attachBearer],
+  functionMiddleware: [attachSupabaseAuth, attachBearer],
   requestMiddleware: [errorMiddleware, csrfMiddleware],
 }));

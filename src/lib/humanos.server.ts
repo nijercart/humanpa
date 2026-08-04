@@ -220,6 +220,8 @@ export async function researchNeed(input: {
       "Prefer official, institutional and primary sources; corroborate anything that costs money or has a deadline.",
       "Never invent facts, prices, deadlines or URLs. If something cannot be verified, say so plainly.",
       "Finish with a compact briefing: what is true, what the realistic routes are, what it costs, and what to watch out for. Cite URLs inline.",
+      "Search in whichever language finds the best sources, but write the briefing itself in the same language the person used.",
+      LANGUAGE_RULE,
     ].join(" "),
     prompt: `${context}\n\nResearch this thoroughly, then write the briefing.`,
     tools: {
@@ -257,6 +259,9 @@ export async function researchNeed(input: {
     "- options: 2 to 4 genuinely different realistic routes. Fill cost, timeRequired, effort, risk and bestFor with short concrete phrases (use 'Unclear' rather than guessing). Give 2-3 pros and 2-3 cons each, sourceUrls drawn only from the list above, and mark exactly one as recommended.",
     "- steps: 4 to 8 ordered actions the person can start today. Each has a short title, one sentence of detail, and linkUrl/linkLabel pointing at the exact page or form when one exists (otherwise null).",
     "Keep every string short and plain-spoken. No markdown.",
+    "",
+    LANGUAGE_RULE,
+    "That includes cost/time/effort/risk/bestFor placeholders: write the local-language equivalent of 'Unclear' instead of the English word.",
   ].join("\n");
 
   const parsed = normalizeSynthesis(

@@ -16,7 +16,7 @@ const OFFICIAL_PATTERNS = [
   /\.who\.int$/i,
   /\.europa\.eu$/i,
   /\.nhs\.uk$/i,
-  /\.org$/i,
+  /\.(un|oecd|iso)\.org$/i,
 ];
 
 export function domainOf(url: string): string {

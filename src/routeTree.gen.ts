@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedNeedsRouteImport } from './routes/_authenticated/needs'
+import { Route as AuthenticatedNeedNeedIdRouteImport } from './routes/_authenticated/need.$needId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -33,16 +34,23 @@ const AuthenticatedNeedsRoute = AuthenticatedNeedsRouteImport.update({
   path: '/needs',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedNeedNeedIdRoute = AuthenticatedNeedNeedIdRouteImport.update({
+  id: '/need/$needId',
+  path: '/need/$needId',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/needs': typeof AuthenticatedNeedsRoute
+  '/need/$needId': typeof AuthenticatedNeedNeedIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/needs': typeof AuthenticatedNeedsRoute
+  '/need/$needId': typeof AuthenticatedNeedNeedIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -50,13 +58,20 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/_authenticated/needs': typeof AuthenticatedNeedsRoute
+  '/_authenticated/need/$needId': typeof AuthenticatedNeedNeedIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/needs'
+  fullPaths: '/' | '/auth' | '/needs' | '/need/$needId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/needs'
-  id: '__root__' | '/' | '/_authenticated' | '/auth' | '/_authenticated/needs'
+  to: '/' | '/auth' | '/needs' | '/need/$needId'
+  id:
+    | '__root__'
+    | '/'
+    | '/_authenticated'
+    | '/auth'
+    | '/_authenticated/needs'
+    | '/_authenticated/need/$needId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -95,15 +110,24 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedNeedsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/need/$needId': {
+      id: '/_authenticated/need/$needId'
+      path: '/need/$needId'
+      fullPath: '/need/$needId'
+      preLoaderRoute: typeof AuthenticatedNeedNeedIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedNeedsRoute: typeof AuthenticatedNeedsRoute
+  AuthenticatedNeedNeedIdRoute: typeof AuthenticatedNeedNeedIdRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedNeedsRoute: AuthenticatedNeedsRoute,
+  AuthenticatedNeedNeedIdRoute: AuthenticatedNeedNeedIdRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =

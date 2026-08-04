@@ -249,18 +249,10 @@ export async function researchNeed(input: {
     "Keep every string short and plain-spoken. No markdown.",
   ].join("\n");
 
-  const synthesis = streamText({
-    model: gateway(HUMANOS_MODEL),
-    prompt: synthesisPrompt,
-    output: Output.object({ schema: synthesisSchema }),
-  });
+  const parsed = normalizeSynthesis(
+    await generateJson(gateway(HUMANOS_MODEL), { prompt: synthesisPrompt }),
+  );
 
-  let parsed: SynthesisResult;
-  try {
-    parsed = await synthesis.output;
-  } catch (error) {
-    parsed = parseFallback(synthesisSchema, error);
-  }
 
   // Enforce the prompt's limits in code rather than in the schema.
   parsed.options = parsed.options.slice(0, 4);

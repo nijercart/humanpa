@@ -1,4 +1,4 @@
-import { generateText, stepCountIs, streamText, tool, Output, NoObjectGeneratedError } from "ai";
+import { stepCountIs, streamText, tool } from "ai";
 import { z } from "zod";
 
 import { createLovableAiGatewayProvider, HUMANOS_MODEL, requireLovableApiKey } from "./ai-gateway.server";
@@ -42,16 +42,111 @@ const synthesisSchema = z.object({
 
 export type SynthesisResult = z.infer<typeof synthesisSchema>;
 
-function parseFallback<T>(schema: z.ZodType<T>, error: unknown): T {
-  if (NoObjectGeneratedError.isInstance(error) && error.text) {
-    const match = error.text.match(/\{[\s\S]*\}/);
-    if (match) {
-      const parsed = schema.safeParse(JSON.parse(match[0]));
-      if (parsed.success) return parsed.data;
-    }
-  }
-  throw error;
+/** Models drift: coerce whatever came back into the shape the app needs. */
+function str(value: unknown, fallback = ""): string {
+  if (typeof value === "string") return value;
+  if (typeof value === "number" || typeof value === "boolean") return String(value);
+  return fallback;
 }
+
+function strArray(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.map((item) => str(item)).filter(Boolean);
+}
+
+function nullableStr(value: unknown): string | null {
+  const text = str(value);
+  return text ? text : null;
+}
+
+function normalizeClarify(raw: unknown, rawInput: string): ClarifyResult {
+  const obj = (raw ?? {}) as Record<string, unknown>;
+  const questions = Array.isArray(obj["questions"]) ? (obj["questions"] as unknown[]) : [];
+  return {
+    title: str(obj["title"], rawInput.slice(0, 60)),
+    restatedProblem: str(obj["restatedProblem"], rawInput),
+    assumptions: strArray(obj["assumptions"]),
+    questions: questions
+      .map((item, index) => {
+        const q = (item ?? {}) as Record<string, unknown>;
+        return {
+          id: str(q["id"], `q${index + 1}`),
+          question: str(q["question"]),
+          why: str(q["why"]),
+        };
+      })
+      .filter((q) => q.question),
+  };
+}
+
+function normalizeSynthesis(raw: unknown): SynthesisResult {
+  const obj = (raw ?? {}) as Record<string, unknown>;
+  const options = Array.isArray(obj["options"]) ? (obj["options"] as unknown[]) : [];
+  const steps = Array.isArray(obj["steps"]) ? (obj["steps"] as unknown[]) : [];
+  return {
+    recommendation: str(obj["recommendation"]),
+    options: options
+      .map((item) => {
+        const o = (item ?? {}) as Record<string, unknown>;
+        return {
+          name: str(o["name"]),
+          summary: str(o["summary"]),
+          cost: str(o["cost"], "Unclear"),
+          timeRequired: str(o["timeRequired"], "Unclear"),
+          effort: str(o["effort"], "Unclear"),
+          risk: str(o["risk"], "Unclear"),
+          bestFor: str(o["bestFor"], "Unclear"),
+          pros: strArray(o["pros"]),
+          cons: strArray(o["cons"]),
+          sourceUrls: strArray(o["sourceUrls"]),
+          recommended: o["recommended"] === true,
+        };
+      })
+      .filter((o) => o.name),
+    steps: steps
+      .map((item) => {
+        const s = (item ?? {}) as Record<string, unknown>;
+        return {
+          title: str(s["title"]),
+          detail: str(s["detail"]),
+          linkUrl: nullableStr(s["linkUrl"]),
+          linkLabel: nullableStr(s["linkLabel"]),
+        };
+      })
+      .filter((s) => s.title),
+  };
+}
+
+/** Pull the first JSON object out of a model response, tolerating code fences and prose. */
+function extractJson(text: string | undefined): unknown {
+  if (!text) return null;
+  const cleaned = text.replace(/```(?:json)?/gi, "");
+  const start = cleaned.indexOf("{");
+  const end = cleaned.lastIndexOf("}");
+  if (start === -1 || end <= start) return null;
+  try {
+    return JSON.parse(cleaned.slice(start, end + 1));
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Ask for JSON as plain text and normalize it ourselves.
+ * Structured-output validation was rejecting perfectly usable answers.
+ */
+async function generateJson(
+  model: ReturnType<ReturnType<typeof createLovableAiGatewayProvider>>,
+  args: { system?: string; prompt: string },
+): Promise<unknown> {
+  const result = streamText({
+    model,
+    ...(args.system ? { system: args.system } : {}),
+    prompt: `${args.prompt}\n\nReply with a single JSON object only. No markdown, no commentary.`,
+  });
+  return extractJson(await result.text);
+}
+
 
 /** Step 1 — restate the real problem and ask the few questions that actually change the answer. */
 export async function clarifyNeed(rawInput: string): Promise<ClarifyResult> {
@@ -71,17 +166,15 @@ export async function clarifyNeed(rawInput: string): Promise<ClarifyResult> {
     "Never ask for personal identifiers, passwords, or financial account details.",
   ].join("\n");
 
-  const result = streamText({
-    model: gateway(HUMANOS_MODEL),
-    prompt,
-    output: Output.object({ schema: clarifySchema }),
-  });
-
-  try {
-    return await result.output;
-  } catch (error) {
-    return parseFallback(clarifySchema, error);
+  const raw = await generateJson(gateway(HUMANOS_MODEL), { prompt });
+  const clarified = normalizeClarify(raw, rawInput);
+  if (!clarified.questions.length) {
+    clarified.questions = [
+      { id: "context", question: "Anything else we should know before researching?", why: "Fills the gaps." },
+    ];
   }
+  return clarified;
+
 }
 
 export type ResearchOutcome = {
@@ -156,18 +249,10 @@ export async function researchNeed(input: {
     "Keep every string short and plain-spoken. No markdown.",
   ].join("\n");
 
-  const synthesis = streamText({
-    model: gateway(HUMANOS_MODEL),
-    prompt: synthesisPrompt,
-    output: Output.object({ schema: synthesisSchema }),
-  });
+  const parsed = normalizeSynthesis(
+    await generateJson(gateway(HUMANOS_MODEL), { prompt: synthesisPrompt }),
+  );
 
-  let parsed: SynthesisResult;
-  try {
-    parsed = await synthesis.output;
-  } catch (error) {
-    parsed = parseFallback(synthesisSchema, error);
-  }
 
   // Enforce the prompt's limits in code rather than in the schema.
   parsed.options = parsed.options.slice(0, 4);

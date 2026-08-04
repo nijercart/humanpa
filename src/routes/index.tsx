@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 
 import { AppHeader } from "@/components/AppHeader";
 import { Button } from "@/components/ui/button";
+import { useAuthUser } from "@/hooks/use-auth-user";
 
 export const Route = createFileRoute("/")({
   head: () => ({

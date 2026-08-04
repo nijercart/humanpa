@@ -147,6 +147,14 @@ async function generateJson(
   return extractJson(await result.text);
 }
 
+/** Every user-visible string must come back in the language the person wrote in. */
+const LANGUAGE_RULE =
+  "Write every user-visible string in the SAME language the person used in their own words. " +
+  "Detect it from their original message and match it exactly (including script and formality). " +
+  "Keep URLs, proper nouns and JSON keys unchanged. Only fall back to English if their language is genuinely unclear.";
+
+
+
 
 /** Step 1 — restate the real problem and ask the few questions that actually change the answer. */
 export async function clarifyNeed(rawInput: string): Promise<ClarifyResult> {
@@ -164,6 +172,8 @@ export async function clarifyNeed(rawInput: string): Promise<ClarifyResult> {
     "- questions: 2 to 4 sharp clarifying questions whose answers would genuinely change the recommendation.",
     "  Each has a short stable id (slug), the question text, and 'why' — one short line on why it matters.",
     "Never ask for personal identifiers, passwords, or financial account details.",
+    "",
+    LANGUAGE_RULE,
   ].join("\n");
 
   const raw = await generateJson(gateway(HUMANOS_MODEL), { prompt });

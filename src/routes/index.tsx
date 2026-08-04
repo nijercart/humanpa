@@ -32,6 +32,7 @@ const STAGES = [
 ];
 
 function Landing() {
+  const { user } = useAuthUser();
   return (
     <div className="min-h-screen">
       <AppHeader />

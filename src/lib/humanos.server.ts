@@ -147,6 +147,14 @@ async function generateJson(
   return extractJson(await result.text);
 }
 
+/** Every user-visible string must come back in the language the person wrote in. */
+const LANGUAGE_RULE =
+  "Write every user-visible string in the SAME language the person used in their own words. " +
+  "Detect it from their original message and match it exactly (including script and formality). " +
+  "Keep URLs, proper nouns and JSON keys unchanged. Only fall back to English if their language is genuinely unclear.";
+
+
+
 
 /** Step 1 — restate the real problem and ask the few questions that actually change the answer. */
 export async function clarifyNeed(rawInput: string): Promise<ClarifyResult> {
@@ -164,6 +172,8 @@ export async function clarifyNeed(rawInput: string): Promise<ClarifyResult> {
     "- questions: 2 to 4 sharp clarifying questions whose answers would genuinely change the recommendation.",
     "  Each has a short stable id (slug), the question text, and 'why' — one short line on why it matters.",
     "Never ask for personal identifiers, passwords, or financial account details.",
+    "",
+    LANGUAGE_RULE,
   ].join("\n");
 
   const raw = await generateJson(gateway(HUMANOS_MODEL), { prompt });
@@ -210,6 +220,8 @@ export async function researchNeed(input: {
       "Prefer official, institutional and primary sources; corroborate anything that costs money or has a deadline.",
       "Never invent facts, prices, deadlines or URLs. If something cannot be verified, say so plainly.",
       "Finish with a compact briefing: what is true, what the realistic routes are, what it costs, and what to watch out for. Cite URLs inline.",
+      "Search in whichever language finds the best sources, but write the briefing itself in the same language the person used.",
+      LANGUAGE_RULE,
     ].join(" "),
     prompt: `${context}\n\nResearch this thoroughly, then write the briefing.`,
     tools: {
@@ -247,6 +259,9 @@ export async function researchNeed(input: {
     "- options: 2 to 4 genuinely different realistic routes. Fill cost, timeRequired, effort, risk and bestFor with short concrete phrases (use 'Unclear' rather than guessing). Give 2-3 pros and 2-3 cons each, sourceUrls drawn only from the list above, and mark exactly one as recommended.",
     "- steps: 4 to 8 ordered actions the person can start today. Each has a short title, one sentence of detail, and linkUrl/linkLabel pointing at the exact page or form when one exists (otherwise null).",
     "Keep every string short and plain-spoken. No markdown.",
+    "",
+    LANGUAGE_RULE,
+    "That includes cost/time/effort/risk/bestFor placeholders: write the local-language equivalent of 'Unclear' instead of the English word.",
   ].join("\n");
 
   const parsed = normalizeSynthesis(

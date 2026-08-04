@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 
 import { AppHeader } from "@/components/AppHeader";
 import { Button } from "@/components/ui/button";
+import { useAuthUser } from "@/hooks/use-auth-user";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -31,6 +32,7 @@ const STAGES = [
 ];
 
 function Landing() {
+  const { user } = useAuthUser();
   return (
     <div className="min-h-screen">
       <AppHeader />
@@ -50,7 +52,9 @@ function Landing() {
           </p>
           <div className="mt-10 flex flex-wrap items-center gap-3">
             <Button asChild size="lg">
-              <Link to="/auth">Start with a problem</Link>
+              <Link to={user ? "/needs" : "/auth"}>
+                {user ? "Go to your problems" : "Start with a problem"}
+              </Link>
             </Button>
             <span className="text-sm text-muted-foreground">Free while in preview.</span>
           </div>

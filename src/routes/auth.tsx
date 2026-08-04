@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createFileRoute, useNavigate, useSearch, Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 
@@ -6,6 +6,7 @@ import { Logo } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useAuthUser } from "@/hooks/use-auth-user";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
 
@@ -44,6 +45,14 @@ function AuthPage() {
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState(false);
+  const { user } = useAuthUser();
+
+  // Already signed in (e.g. returning from Google) — don't show the form again.
+  useEffect(() => {
+    if (user) navigate({ to: destination, replace: true });
+  }, [user, destination, navigate]);
+
+
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -76,7 +85,7 @@ function AuthPage() {
     setBusy(true);
     try {
       const result = await lovable.auth.signInWithOAuth("google", {
-        redirect_uri: window.location.origin,
+        redirect_uri: `${window.location.origin}/auth?redirect=${encodeURIComponent(destination)}`,
       });
       if (result.error) {
         toast.error(result.error.message ?? "Google sign-in failed.");

@@ -45,6 +45,14 @@ function AuthPage() {
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState(false);
+  const { user } = useAuthUser();
+
+  // Already signed in (e.g. returning from Google) — don't show the form again.
+  useEffect(() => {
+    if (user) navigate({ to: destination, replace: true });
+  }, [user, destination, navigate]);
+
+
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();

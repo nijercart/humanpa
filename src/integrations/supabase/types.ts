@@ -14,7 +14,216 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      need_options: {
+        Row: {
+          best_for: string | null
+          cons: string[]
+          cost: string | null
+          created_at: string
+          effort: string | null
+          id: string
+          name: string
+          need_id: string
+          position: number
+          pros: string[]
+          recommended: boolean
+          risk: string | null
+          source_urls: string[]
+          summary: string | null
+          time_required: string | null
+          user_id: string
+        }
+        Insert: {
+          best_for?: string | null
+          cons?: string[]
+          cost?: string | null
+          created_at?: string
+          effort?: string | null
+          id?: string
+          name: string
+          need_id: string
+          position?: number
+          pros?: string[]
+          recommended?: boolean
+          risk?: string | null
+          source_urls?: string[]
+          summary?: string | null
+          time_required?: string | null
+          user_id: string
+        }
+        Update: {
+          best_for?: string | null
+          cons?: string[]
+          cost?: string | null
+          created_at?: string
+          effort?: string | null
+          id?: string
+          name?: string
+          need_id?: string
+          position?: number
+          pros?: string[]
+          recommended?: boolean
+          risk?: string | null
+          source_urls?: string[]
+          summary?: string | null
+          time_required?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "need_options_need_id_fkey"
+            columns: ["need_id"]
+            isOneToOne: false
+            referencedRelation: "needs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      need_sources: {
+        Row: {
+          created_at: string
+          domain: string | null
+          id: string
+          is_official: boolean
+          need_id: string
+          position: number
+          published_date: string | null
+          snippet: string | null
+          title: string
+          url: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          domain?: string | null
+          id?: string
+          is_official?: boolean
+          need_id: string
+          position?: number
+          published_date?: string | null
+          snippet?: string | null
+          title: string
+          url: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          domain?: string | null
+          id?: string
+          is_official?: boolean
+          need_id?: string
+          position?: number
+          published_date?: string | null
+          snippet?: string | null
+          title?: string
+          url?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "need_sources_need_id_fkey"
+            columns: ["need_id"]
+            isOneToOne: false
+            referencedRelation: "needs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      need_steps: {
+        Row: {
+          created_at: string
+          detail: string | null
+          done: boolean
+          id: string
+          link_label: string | null
+          link_url: string | null
+          need_id: string
+          position: number
+          title: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          detail?: string | null
+          done?: boolean
+          id?: string
+          link_label?: string | null
+          link_url?: string | null
+          need_id: string
+          position?: number
+          title: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          detail?: string | null
+          done?: boolean
+          id?: string
+          link_label?: string | null
+          link_url?: string | null
+          need_id?: string
+          position?: number
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "need_steps_need_id_fkey"
+            columns: ["need_id"]
+            isOneToOne: false
+            referencedRelation: "needs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      needs: {
+        Row: {
+          assumptions: string[]
+          clarifying_answers: Json
+          clarifying_questions: Json
+          created_at: string
+          error_message: string | null
+          id: string
+          raw_input: string
+          recommendation: string | null
+          restated_problem: string | null
+          status: string
+          title: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          assumptions?: string[]
+          clarifying_answers?: Json
+          clarifying_questions?: Json
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          raw_input: string
+          recommendation?: string | null
+          restated_problem?: string | null
+          status?: string
+          title?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          assumptions?: string[]
+          clarifying_answers?: Json
+          clarifying_questions?: Json
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          raw_input?: string
+          recommendation?: string | null
+          restated_problem?: string | null
+          status?: string
+          title?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

@@ -166,17 +166,15 @@ export async function clarifyNeed(rawInput: string): Promise<ClarifyResult> {
     "Never ask for personal identifiers, passwords, or financial account details.",
   ].join("\n");
 
-  const result = streamText({
-    model: gateway(HUMANOS_MODEL),
-    prompt,
-    output: Output.object({ schema: clarifySchema }),
-  });
-
-  try {
-    return await result.output;
-  } catch (error) {
-    return parseFallback(clarifySchema, error);
+  const raw = await generateJson(gateway(HUMANOS_MODEL), { prompt });
+  const clarified = normalizeClarify(raw, rawInput);
+  if (!clarified.questions.length) {
+    clarified.questions = [
+      { id: "context", question: "Anything else we should know before researching?", why: "Fills the gaps." },
+    ];
   }
+  return clarified;
+
 }
 
 export type ResearchOutcome = {

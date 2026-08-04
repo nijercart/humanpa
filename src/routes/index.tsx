@@ -15,7 +15,7 @@ export const Route = createFileRoute("/")({
       { property: "og:title", content: "HumanOS — Tell it what you need" },
       {
         property: "og:description",
-        content: "From a messy problem to a researched, sourced action plan.",
+        content: "Describe a real-life problem in plain words. HumanOS extracts the real question, researches verified sources, compares your options and gives you an action plan you can start today.",
       },
     ],
   }),

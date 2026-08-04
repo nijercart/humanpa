@@ -83,15 +83,19 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       {
         name: "description",
         content:
-          "Describe any real-life problem. HumanOS finds the real question, researches verified sources, compares your options and hands you an action plan.",
+          "Describe a real-life problem in plain words. HumanOS extracts the real question, researches verified sources, compares your options and gives you an action plan you can start today.",
       },
       { property: "og:title", content: "HumanOS — Tell it what you need" },
       {
         property: "og:description",
-        content: "From a messy problem to a researched, sourced action plan.",
+        content: "Describe a real-life problem in plain words. HumanOS extracts the real question, researches verified sources, compares your options and gives you an action plan you can start today.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: "HumanOS — Tell it what you need" },
+      { name: "twitter:description", content: "Describe a real-life problem in plain words. HumanOS extracts the real question, researches verified sources, compares your options and gives you an action plan you can start today." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/9a761021-7d2e-4762-9529-9493a048271b/id-preview-2639e596--ad896ab8-861e-4bfb-9874-782d1fafea38.lovable.app-1785879579144.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/9a761021-7d2e-4762-9529-9493a048271b/id-preview-2639e596--ad896ab8-861e-4bfb-9874-782d1fafea38.lovable.app-1785879579144.png" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },

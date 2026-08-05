@@ -84,6 +84,16 @@ test.describe("/auth 401 handling", () => {
         body: JSON.stringify(EXPIRED_SESSION.user),
       }),
     );
+    await page.route("**/auth/v1/token**", (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          ...EXPIRED_SESSION,
+          expires_at: Math.floor(Date.now() / 1000) + 3600,
+        }),
+      }),
+    );
     // …but every server function replies with the middleware's JSON 401.
     await page.route("**/_serverFn/**", (route) =>
       route.fulfill({

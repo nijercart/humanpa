@@ -12,7 +12,13 @@ export default defineConfig({
     baseURL: BASE_URL,
     viewport: { width: 1280, height: 900 },
   },
-  projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
+  projects: [
+    {
+      name: "chromium",
+      // Use the full Chromium build (not the headless shell) so it runs in CI sandboxes.
+      use: { ...devices["Desktop Chrome"], channel: "chromium" },
+    },
+  ],
   webServer: {
     command: "bun run dev",
     url: BASE_URL,

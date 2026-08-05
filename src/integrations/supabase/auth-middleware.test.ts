@@ -70,7 +70,8 @@ describe("requireSupabaseAuth", () => {
   });
 
   it("returns a JSON 401 for a Bearer header with no token", async () => {
-    await expect401({ authorization: "Bearer    " }, "No token provided");
+    // \u00a0 survives header normalization but is stripped by trim().
+    await expect401({ authorization: "Bearer \u00a0" }, "No token provided");
   });
 
   it("returns a JSON 401 for a malformed (non-JWT) token", async () => {

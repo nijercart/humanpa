@@ -34,7 +34,7 @@ const next = vi.fn((arg?: unknown) => arg);
 
 /** Runs the middleware and returns whatever it threw. */
 async function run(headers?: Record<string, string>) {
-  state.request = new Request("https://app.test/_serverFn/x", { headers });
+  state.request = new Request("https://app.test/_serverFn/x", headers ? { headers } : undefined);
   try {
     const result = await state.handler!({ next });
     return { result, thrown: null as unknown };
@@ -95,7 +95,7 @@ describe("requireSupabaseAuth", () => {
     const { thrown } = await run({ authorization: `Bearer ${VALID_SHAPE}` });
     expect(thrown).toBeNull();
     expect(next).toHaveBeenCalledTimes(1);
-    const context = (next.mock.calls[0][0] as { context: { userId: string } }).context;
+    const context = (next.mock.calls[0]![0] as { context: { userId: string } }).context;
     expect(context.userId).toBe("user-1");
   });
 });

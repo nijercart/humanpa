@@ -125,9 +125,21 @@ function NeedsPage() {
             Your problems
           </h2>
 
-          {needs.isLoading ? (
+          {needs.isError ? (
+            <div
+              data-testid="needs-error"
+              className="mt-4 rounded-md border border-rule bg-paper p-5 text-sm leading-relaxed"
+            >
+              We couldn&apos;t load your problems — your session may have expired.{" "}
+              <Link to="/auth" search={{ redirect: "/needs" }} className="underline underline-offset-4">
+                Sign in again
+              </Link>
+              .
+            </div>
+          ) : needs.isLoading ? (
             <p className="mt-6 text-sm text-muted-foreground">Loading…</p>
           ) : needs.data?.length ? (
+
             <ul className="mt-4 divide-y divide-rule border-t border-rule">
               {needs.data.map((need) => (
                 <li key={need.id} className="group flex items-center gap-4 py-4">

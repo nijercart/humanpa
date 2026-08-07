@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { AppHeader } from "@/components/AppHeader";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { createNeed, deleteNeed, listNeeds } from "@/lib/needs.functions";
+import { createNeed, deleteNeed, getResearchQuota, listNeeds } from "@/lib/needs.functions";
 
 export const Route = createFileRoute("/_authenticated/needs")({
   head: () => ({

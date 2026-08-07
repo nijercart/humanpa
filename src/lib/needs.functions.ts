@@ -17,6 +17,32 @@ const ToggleStepInput = z.object({ stepId: z.string().uuid(), done: z.boolean() 
 
 export type ClarifyingQuestion = { id: string; question: string; why: string };
 
+/** How many successful researches one account can run per calendar day (UTC). */
+export const DAILY_RESEARCH_LIMIT = 2;
+
+function startOfUtcDay(): string {
+  const now = new Date();
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())).toISOString();
+}
+
+/** How many researches the signed-in user has left today. */
+export const getResearchQuota = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { count, error } = await context.supabase
+      .from("research_runs")
+      .select("id", { count: "exact", head: true })
+      .gte("created_at", startOfUtcDay());
+    if (error) throw new Error(error.message);
+    const used = count ?? 0;
+    return {
+      used,
+      limit: DAILY_RESEARCH_LIMIT,
+      remaining: Math.max(0, DAILY_RESEARCH_LIMIT - used),
+    };
+  });
+
+
 /** Create a need and immediately restate the problem + ask clarifying questions. */
 export const createNeed = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])

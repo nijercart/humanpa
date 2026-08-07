@@ -250,13 +250,22 @@ function NeedDetail() {
                 </div>
               ))}
             </div>
-            <Button
-              className="mt-6"
-              onClick={() => researchMutation.mutate()}
-              disabled={researchMutation.isPending}
-            >
-              Research this
-            </Button>
+            <div className="mt-6 flex flex-wrap items-center gap-3">
+              <Button
+                onClick={() => researchMutation.mutate()}
+                disabled={researchMutation.isPending || outOfQuota}
+              >
+                Research this
+              </Button>
+              {quota.data ? (
+                <p className="text-xs text-muted-foreground">
+                  {outOfQuota
+                    ? `You've used both of today's researches. Resets at midnight UTC.`
+                    : `${quota.data.remaining} of ${quota.data.limit} researches left today.`}
+                </p>
+              ) : null}
+            </div>
+
           </section>
         ) : null}
 

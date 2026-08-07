@@ -106,11 +106,20 @@ function NeedsPage() {
           <div className="mt-3 flex items-center justify-between gap-4">
             <p className="text-xs text-muted-foreground">
               Don't include passwords, ID numbers or account details.
+              {quota.data ? (
+                <>
+                  {" "}
+                  <span className="text-foreground">
+                    {quota.data.remaining} of {quota.data.limit} researches left today.
+                  </span>
+                </>
+              ) : null}
             </p>
             <Button type="submit" disabled={createMutation.isPending}>
               {createMutation.isPending ? "Reading…" : "Work it out"}
             </Button>
           </div>
+
         </form>
 
         <div className="mt-6 flex flex-wrap gap-2">

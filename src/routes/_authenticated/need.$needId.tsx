@@ -130,6 +130,8 @@ function NeedDetail() {
   const questions = (need.clarifying_questions ?? []) as ClarifyingQuestion[];
   const assumptions = (need.assumptions ?? []) as string[];
   const researching = need.status === "researching" || researchMutation.isPending;
+  const outOfQuota = (quota.data?.remaining ?? 1) <= 0;
+
 
   return (
     <div className="min-h-screen">

@@ -199,7 +199,11 @@ export const runResearch = createServerFn({ method: "POST" })
         .eq("id", need.id);
       if (doneError) throw new Error(doneError.message);
 
+      // Only successful researches count against the daily allowance.
+      await supabase.from("research_runs").insert({ user_id: userId, need_id: need.id });
+
       return { ok: true as const };
+
     } catch (aiError) {
       const message = describeAiError(aiError);
       await supabase.from("needs").update({ status: "error", error_message: message }).eq("id", need.id);

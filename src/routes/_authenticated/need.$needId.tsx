@@ -65,10 +65,16 @@ function NeedDetail() {
   const fetchNeed = useServerFn(getNeed);
   const research = useServerFn(runResearch);
   const saveProblem = useServerFn(updateProblem);
+  const fetchQuota = useServerFn(getResearchQuota);
 
   const query = useQuery({
     queryKey: ["need", needId],
     queryFn: () => fetchNeed({ data: { needId } }),
+  });
+
+  const quota = useQuery({
+    queryKey: ["research-quota"],
+    queryFn: () => fetchQuota({ data: undefined }),
   });
 
   const [answers, setAnswers] = useState<Record<string, string>>({});
@@ -77,12 +83,17 @@ function NeedDetail() {
 
   const researchMutation = useMutation({
     mutationFn: () => research({ data: { needId, answers } }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["need", needId] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["need", needId] });
+      queryClient.invalidateQueries({ queryKey: ["research-quota"] });
+    },
     onError: (error) => {
       queryClient.invalidateQueries({ queryKey: ["need", needId] });
+      queryClient.invalidateQueries({ queryKey: ["research-quota"] });
       toast.error(error instanceof Error ? error.message : "Research failed.");
     },
   });
+
 
   const problemMutation = useMutation({
     mutationFn: (restatedProblem: string) => saveProblem({ data: { needId, restatedProblem } }),

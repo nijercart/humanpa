@@ -10,7 +10,7 @@ import { OptionsGrid } from "@/components/need/OptionsGrid";
 import { SourceList } from "@/components/need/SourceList";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { getNeed, runResearch, updateProblem } from "@/lib/needs.functions";
+import { getNeed, getResearchQuota, runResearch, updateProblem } from "@/lib/needs.functions";
 
 type ClarifyingQuestion = { id: string; question: string; why: string };
 

@@ -10,7 +10,7 @@ import { OptionsGrid } from "@/components/need/OptionsGrid";
 import { SourceList } from "@/components/need/SourceList";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { getNeed, runResearch, updateProblem } from "@/lib/needs.functions";
+import { getNeed, getResearchQuota, runResearch, updateProblem } from "@/lib/needs.functions";
 
 type ClarifyingQuestion = { id: string; question: string; why: string };
 
@@ -65,10 +65,16 @@ function NeedDetail() {
   const fetchNeed = useServerFn(getNeed);
   const research = useServerFn(runResearch);
   const saveProblem = useServerFn(updateProblem);
+  const fetchQuota = useServerFn(getResearchQuota);
 
   const query = useQuery({
     queryKey: ["need", needId],
     queryFn: () => fetchNeed({ data: { needId } }),
+  });
+
+  const quota = useQuery({
+    queryKey: ["research-quota"],
+    queryFn: () => fetchQuota({ data: undefined }),
   });
 
   const [answers, setAnswers] = useState<Record<string, string>>({});
@@ -77,12 +83,17 @@ function NeedDetail() {
 
   const researchMutation = useMutation({
     mutationFn: () => research({ data: { needId, answers } }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["need", needId] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["need", needId] });
+      queryClient.invalidateQueries({ queryKey: ["research-quota"] });
+    },
     onError: (error) => {
       queryClient.invalidateQueries({ queryKey: ["need", needId] });
+      queryClient.invalidateQueries({ queryKey: ["research-quota"] });
       toast.error(error instanceof Error ? error.message : "Research failed.");
     },
   });
+
 
   const problemMutation = useMutation({
     mutationFn: (restatedProblem: string) => saveProblem({ data: { needId, restatedProblem } }),
@@ -119,6 +130,8 @@ function NeedDetail() {
   const questions = (need.clarifying_questions ?? []) as ClarifyingQuestion[];
   const assumptions = (need.assumptions ?? []) as string[];
   const researching = need.status === "researching" || researchMutation.isPending;
+  const outOfQuota = (quota.data?.remaining ?? 1) <= 0;
+
 
   return (
     <div className="min-h-screen">
@@ -147,10 +160,11 @@ function NeedDetail() {
                 className="mt-3"
                 size="sm"
                 onClick={() => researchMutation.mutate()}
-                disabled={researchMutation.isPending}
+                disabled={researchMutation.isPending || outOfQuota}
               >
                 Try the research again
               </Button>
+
             ) : null}
           </div>
         ) : null}
@@ -239,13 +253,22 @@ function NeedDetail() {
                 </div>
               ))}
             </div>
-            <Button
-              className="mt-6"
-              onClick={() => researchMutation.mutate()}
-              disabled={researchMutation.isPending}
-            >
-              Research this
-            </Button>
+            <div className="mt-6 flex flex-wrap items-center gap-3">
+              <Button
+                onClick={() => researchMutation.mutate()}
+                disabled={researchMutation.isPending || outOfQuota}
+              >
+                Research this
+              </Button>
+              {quota.data ? (
+                <p className="text-xs text-muted-foreground">
+                  {outOfQuota
+                    ? `You've used both of today's researches. Resets at midnight UTC.`
+                    : `${quota.data.remaining} of ${quota.data.limit} researches left today.`}
+                </p>
+              ) : null}
+            </div>
+
           </section>
         ) : null}
 

@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { AppHeader } from "@/components/AppHeader";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { createNeed, deleteNeed, listNeeds } from "@/lib/needs.functions";
+import { createNeed, deleteNeed, getResearchQuota, listNeeds } from "@/lib/needs.functions";
 
 export const Route = createFileRoute("/_authenticated/needs")({
   head: () => ({
@@ -47,8 +47,14 @@ function NeedsPage() {
   const list = useServerFn(listNeeds);
   const create = useServerFn(createNeed);
   const remove = useServerFn(deleteNeed);
+  const fetchQuota = useServerFn(getResearchQuota);
 
   const needs = useQuery({ queryKey: ["needs"], queryFn: () => list({ data: undefined }) });
+  const quota = useQuery({
+    queryKey: ["research-quota"],
+    queryFn: () => fetchQuota({ data: undefined }),
+  });
+
 
   const createMutation = useMutation({
     mutationFn: (rawInput: string) => create({ data: { rawInput } }),
@@ -100,11 +106,20 @@ function NeedsPage() {
           <div className="mt-3 flex items-center justify-between gap-4">
             <p className="text-xs text-muted-foreground">
               Don't include passwords, ID numbers or account details.
+              {quota.data ? (
+                <>
+                  {" "}
+                  <span className="text-foreground">
+                    {quota.data.remaining} of {quota.data.limit} researches left today.
+                  </span>
+                </>
+              ) : null}
             </p>
             <Button type="submit" disabled={createMutation.isPending}>
               {createMutation.isPending ? "Reading…" : "Work it out"}
             </Button>
           </div>
+
         </form>
 
         <div className="mt-6 flex flex-wrap gap-2">

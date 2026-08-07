@@ -224,6 +224,35 @@ export type Database = {
         }
         Relationships: []
       }
+      research_runs: {
+        Row: {
+          created_at: string
+          id: string
+          need_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          need_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          need_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "research_runs_need_id_fkey"
+            columns: ["need_id"]
+            isOneToOne: false
+            referencedRelation: "needs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

@@ -17,6 +17,32 @@ const ToggleStepInput = z.object({ stepId: z.string().uuid(), done: z.boolean() 
 
 export type ClarifyingQuestion = { id: string; question: string; why: string };
 
+/** How many successful researches one account can run per calendar day (UTC). */
+export const DAILY_RESEARCH_LIMIT = 2;
+
+function startOfUtcDay(): string {
+  const now = new Date();
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())).toISOString();
+}
+
+/** How many researches the signed-in user has left today. */
+export const getResearchQuota = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { count, error } = await context.supabase
+      .from("research_runs")
+      .select("id", { count: "exact", head: true })
+      .gte("created_at", startOfUtcDay());
+    if (error) throw new Error(error.message);
+    const used = count ?? 0;
+    return {
+      used,
+      limit: DAILY_RESEARCH_LIMIT,
+      remaining: Math.max(0, DAILY_RESEARCH_LIMIT - used),
+    };
+  });
+
+
 /** Create a need and immediately restate the problem + ask clarifying questions. */
 export const createNeed = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -63,12 +89,24 @@ export const runResearch = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
 
+    const { count: usedToday, error: quotaError } = await supabase
+      .from("research_runs")
+      .select("id", { count: "exact", head: true })
+      .gte("created_at", startOfUtcDay());
+    if (quotaError) throw new Error(quotaError.message);
+    if ((usedToday ?? 0) >= DAILY_RESEARCH_LIMIT) {
+      throw new Error(
+        `You've used your ${DAILY_RESEARCH_LIMIT} researches for today. The limit resets at midnight UTC — your problems and answers are saved until then.`,
+      );
+    }
+
     const { data: need, error } = await supabase
       .from("needs")
       .select("id, raw_input, restated_problem, clarifying_questions")
       .eq("id", data.needId)
       .single();
     if (error || !need) throw new Error("Need not found.");
+
 
     await supabase
       .from("needs")
@@ -161,7 +199,11 @@ export const runResearch = createServerFn({ method: "POST" })
         .eq("id", need.id);
       if (doneError) throw new Error(doneError.message);
 
+      // Only successful researches count against the daily allowance.
+      await supabase.from("research_runs").insert({ user_id: userId, need_id: need.id });
+
       return { ok: true as const };
+
     } catch (aiError) {
       const message = describeAiError(aiError);
       await supabase.from("needs").update({ status: "error", error_message: message }).eq("id", need.id);

@@ -89,12 +89,24 @@ export const runResearch = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
 
+    const { count: usedToday, error: quotaError } = await supabase
+      .from("research_runs")
+      .select("id", { count: "exact", head: true })
+      .gte("created_at", startOfUtcDay());
+    if (quotaError) throw new Error(quotaError.message);
+    if ((usedToday ?? 0) >= DAILY_RESEARCH_LIMIT) {
+      throw new Error(
+        `You've used your ${DAILY_RESEARCH_LIMIT} researches for today. The limit resets at midnight UTC — your problems and answers are saved until then.`,
+      );
+    }
+
     const { data: need, error } = await supabase
       .from("needs")
       .select("id, raw_input, restated_problem, clarifying_questions")
       .eq("id", data.needId)
       .single();
     if (error || !need) throw new Error("Need not found.");
+
 
     await supabase
       .from("needs")

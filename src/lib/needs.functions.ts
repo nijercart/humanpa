@@ -102,15 +102,13 @@ export const runResearch = createServerFn({ method: "POST" })
       .select("id", { count: "exact", head: true })
       .gte("created_at", startOfUtcDay());
     if (quotaError) throw new Error(quotaError.message);
-    if ((usedToday ?? 0) >= DAILY_RESEARCH_LIMIT) {
-      throw new Error(
-        `You've used your ${DAILY_RESEARCH_LIMIT} researches for today. The limit resets at midnight UTC — your problems and answers are saved until then.`,
-      );
-    }
+    // A run only costs quota when it has to hit the live web; answers served
+    // from the shared knowledge base are free.
+    const allowLiveSearch = (usedToday ?? 0) < DAILY_RESEARCH_LIMIT;
 
     const { data: need, error } = await supabase
       .from("needs")
-      .select("id, raw_input, restated_problem, clarifying_questions")
+      .select("id, raw_input, restated_problem, clarifying_questions, intent_locale, freshness_days, needs_live_data")
       .eq("id", data.needId)
       .single();
     if (error || !need) throw new Error("Need not found.");
@@ -135,6 +133,12 @@ export const runResearch = createServerFn({ method: "POST" })
         rawInput: need.raw_input,
         restatedProblem: need.restated_problem ?? need.raw_input,
         answers,
+        allowLiveSearch,
+        intent: {
+          ...(need.intent_locale ? { locale: need.intent_locale } : {}),
+          ...(typeof need.freshness_days === "number" ? { freshnessDays: need.freshness_days } : {}),
+          needsLiveData: need.needs_live_data !== false,
+        },
       });
 
       await Promise.all([

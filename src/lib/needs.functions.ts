@@ -205,19 +205,38 @@ export const runResearch = createServerFn({ method: "POST" })
         .from("needs")
         .update({
           recommendation: outcome.synthesis.recommendation,
+          used_live_search: outcome.usedLiveSearch,
           status: "ready",
           error_message: null,
         })
         .eq("id", need.id);
       if (doneError) throw new Error(doneError.message);
 
-      // Only successful researches count against the daily allowance.
-      await supabase.from("research_runs").insert({ user_id: userId, need_id: need.id });
+      // Record which stored passages this answer leaned on — that's the flywheel.
+      if (outcome.reusedPassages.length) {
+        await supabase.from("need_knowledge").insert(
+          outcome.reusedPassages.slice(0, 30).map((passage) => ({
+            need_id: need.id,
+            user_id: userId,
+            chunk_id: passage.chunkId,
+            similarity: passage.similarity,
+            reused: true,
+          })),
+        );
+      }
 
-      return { ok: true as const };
+      // Only live-web researches count against the daily allowance.
+      if (outcome.usedLiveSearch) {
+        await supabase.from("research_runs").insert({ user_id: userId, need_id: need.id });
+      }
+
+      return { ok: true as const, usedLiveSearch: outcome.usedLiveSearch };
 
     } catch (aiError) {
-      const message = describeAiError(aiError);
+      const message =
+        aiError instanceof Error && aiError.message === "QUOTA_EXHAUSTED"
+          ? `You've used your ${DAILY_RESEARCH_LIMIT} live researches for today, and we don't have saved evidence covering this one yet. The limit resets at midnight UTC — your problem and answers are saved.`
+          : describeAiError(aiError);
       await supabase.from("needs").update({ status: "error", error_message: message }).eq("id", need.id);
       throw new Error(message);
     }

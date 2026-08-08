@@ -93,3 +93,32 @@ export async function webSearch(query: string, limit = 6): Promise<WebResult[]> 
       isOfficial: looksOfficial(item.url),
     }));
 }
+
+/** Fetch the readable full text of a page so evidence isn't limited to search snippets. */
+export async function scrapePage(url: string): Promise<string> {
+  const lovableKey = process.env["LOVABLE_API_KEY"];
+  const firecrawlKey = process.env["FIRECRAWL_API_KEY"];
+  if (!lovableKey || !firecrawlKey) throw new SearchNotConfiguredError();
+
+  const response = await fetch("https://connector-gateway.lovable.dev/firecrawl/v2/scrape", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${lovableKey}`,
+      "X-Connection-Api-Key": firecrawlKey,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ url, formats: ["markdown"], onlyMainContent: true }),
+  });
+
+  if (!response.ok) {
+    const body = await response.text();
+    console.error(`Scrape failed [${response.status}] for ${url}: ${body.slice(0, 300)}`);
+    return "";
+  }
+
+  const payload = (await response.json()) as {
+    markdown?: string;
+    data?: { markdown?: string };
+  };
+  return (payload.markdown ?? payload.data?.markdown ?? "").slice(0, 40000);
+}

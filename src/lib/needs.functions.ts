@@ -58,10 +58,14 @@ export const createNeed = createServerFn({ method: "POST" })
     if (error || !need) throw new Error(error?.message ?? "Could not save your need.");
 
     const { clarifyNeed } = await import("@/lib/humanos.server");
+    const { classifyIntent } = await import("@/lib/intent.server");
     const { describeAiError } = await import("@/lib/ai-gateway.server");
 
     try {
-      const clarified = await clarifyNeed(data.rawInput);
+      const [clarified, intent] = await Promise.all([
+        clarifyNeed(data.rawInput),
+        classifyIntent(data.rawInput),
+      ]);
       const { error: updateError } = await supabase
         .from("needs")
         .update({
@@ -69,6 +73,10 @@ export const createNeed = createServerFn({ method: "POST" })
           restated_problem: clarified.restatedProblem,
           assumptions: clarified.assumptions,
           clarifying_questions: clarified.questions,
+          intent_domain: intent.domain,
+          intent_locale: intent.locale,
+          freshness_days: intent.freshnessDays,
+          needs_live_data: intent.needsLiveData,
           status: "clarified",
           error_message: null,
         })
@@ -94,15 +102,13 @@ export const runResearch = createServerFn({ method: "POST" })
       .select("id", { count: "exact", head: true })
       .gte("created_at", startOfUtcDay());
     if (quotaError) throw new Error(quotaError.message);
-    if ((usedToday ?? 0) >= DAILY_RESEARCH_LIMIT) {
-      throw new Error(
-        `You've used your ${DAILY_RESEARCH_LIMIT} researches for today. The limit resets at midnight UTC — your problems and answers are saved until then.`,
-      );
-    }
+    // A run only costs quota when it has to hit the live web; answers served
+    // from the shared knowledge base are free.
+    const allowLiveSearch = (usedToday ?? 0) < DAILY_RESEARCH_LIMIT;
 
     const { data: need, error } = await supabase
       .from("needs")
-      .select("id, raw_input, restated_problem, clarifying_questions")
+      .select("id, raw_input, restated_problem, clarifying_questions, intent_locale, freshness_days, needs_live_data")
       .eq("id", data.needId)
       .single();
     if (error || !need) throw new Error("Need not found.");
@@ -127,6 +133,12 @@ export const runResearch = createServerFn({ method: "POST" })
         rawInput: need.raw_input,
         restatedProblem: need.restated_problem ?? need.raw_input,
         answers,
+        allowLiveSearch,
+        intent: {
+          ...(need.intent_locale ? { locale: need.intent_locale } : {}),
+          ...(typeof need.freshness_days === "number" ? { freshnessDays: need.freshness_days } : {}),
+          needsLiveData: need.needs_live_data !== false,
+        },
       });
 
       await Promise.all([
@@ -193,19 +205,38 @@ export const runResearch = createServerFn({ method: "POST" })
         .from("needs")
         .update({
           recommendation: outcome.synthesis.recommendation,
+          used_live_search: outcome.usedLiveSearch,
           status: "ready",
           error_message: null,
         })
         .eq("id", need.id);
       if (doneError) throw new Error(doneError.message);
 
-      // Only successful researches count against the daily allowance.
-      await supabase.from("research_runs").insert({ user_id: userId, need_id: need.id });
+      // Record which stored passages this answer leaned on — that's the flywheel.
+      if (outcome.reusedPassages.length) {
+        await supabase.from("need_knowledge").insert(
+          outcome.reusedPassages.slice(0, 30).map((passage) => ({
+            need_id: need.id,
+            user_id: userId,
+            chunk_id: passage.chunkId,
+            similarity: passage.similarity,
+            reused: true,
+          })),
+        );
+      }
 
-      return { ok: true as const };
+      // Only live-web researches count against the daily allowance.
+      if (outcome.usedLiveSearch) {
+        await supabase.from("research_runs").insert({ user_id: userId, need_id: need.id });
+      }
+
+      return { ok: true as const, usedLiveSearch: outcome.usedLiveSearch };
 
     } catch (aiError) {
-      const message = describeAiError(aiError);
+      const message =
+        aiError instanceof Error && aiError.message === "QUOTA_EXHAUSTED"
+          ? `You've used your ${DAILY_RESEARCH_LIMIT} live researches for today, and we don't have saved evidence covering this one yet. The limit resets at midnight UTC — your problem and answers are saved.`
+          : describeAiError(aiError);
       await supabase.from("needs").update({ status: "error", error_message: message }).eq("id", need.id);
       throw new Error(message);
     }

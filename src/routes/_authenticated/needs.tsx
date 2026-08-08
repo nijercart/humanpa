@@ -110,7 +110,7 @@ function NeedsPage() {
                 <>
                   {" "}
                   <span className="text-foreground">
-                    {quota.data.remaining} of {quota.data.limit} researches left today.
+                    {quota.data.remaining} of {quota.data.limit} live web researches left today.
                   </span>
                 </>
               ) : null}

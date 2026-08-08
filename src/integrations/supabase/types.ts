@@ -14,6 +14,128 @@ export type Database = {
   }
   public: {
     Tables: {
+      knowledge_chunks: {
+        Row: {
+          content: string
+          created_at: string
+          document_id: string
+          embedding: string
+          id: string
+          position: number
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          document_id: string
+          embedding: string
+          id?: string
+          position?: number
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          document_id?: string
+          embedding?: string
+          id?: string
+          position?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "knowledge_chunks_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "knowledge_documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      knowledge_documents: {
+        Row: {
+          content: string
+          created_at: string
+          domain: string
+          fetched_at: string
+          id: string
+          is_official: boolean
+          language: string | null
+          published_date: string | null
+          title: string
+          updated_at: string
+          url: string
+        }
+        Insert: {
+          content?: string
+          created_at?: string
+          domain?: string
+          fetched_at?: string
+          id?: string
+          is_official?: boolean
+          language?: string | null
+          published_date?: string | null
+          title?: string
+          updated_at?: string
+          url: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          domain?: string
+          fetched_at?: string
+          id?: string
+          is_official?: boolean
+          language?: string | null
+          published_date?: string | null
+          title?: string
+          updated_at?: string
+          url?: string
+        }
+        Relationships: []
+      }
+      need_knowledge: {
+        Row: {
+          chunk_id: string
+          created_at: string
+          id: string
+          need_id: string
+          reused: boolean
+          similarity: number | null
+          user_id: string
+        }
+        Insert: {
+          chunk_id: string
+          created_at?: string
+          id?: string
+          need_id: string
+          reused?: boolean
+          similarity?: number | null
+          user_id: string
+        }
+        Update: {
+          chunk_id?: string
+          created_at?: string
+          id?: string
+          need_id?: string
+          reused?: boolean
+          similarity?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "need_knowledge_chunk_id_fkey"
+            columns: ["chunk_id"]
+            isOneToOne: false
+            referencedRelation: "knowledge_chunks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "need_knowledge_need_id_fkey"
+            columns: ["need_id"]
+            isOneToOne: false
+            referencedRelation: "needs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       need_options: {
         Row: {
           best_for: string | null
@@ -183,13 +305,18 @@ export type Database = {
           clarifying_questions: Json
           created_at: string
           error_message: string | null
+          freshness_days: number | null
           id: string
+          intent_domain: string | null
+          intent_locale: string | null
+          needs_live_data: boolean
           raw_input: string
           recommendation: string | null
           restated_problem: string | null
           status: string
           title: string | null
           updated_at: string
+          used_live_search: boolean
           user_id: string
         }
         Insert: {
@@ -198,13 +325,18 @@ export type Database = {
           clarifying_questions?: Json
           created_at?: string
           error_message?: string | null
+          freshness_days?: number | null
           id?: string
+          intent_domain?: string | null
+          intent_locale?: string | null
+          needs_live_data?: boolean
           raw_input: string
           recommendation?: string | null
           restated_problem?: string | null
           status?: string
           title?: string | null
           updated_at?: string
+          used_live_search?: boolean
           user_id: string
         }
         Update: {
@@ -213,13 +345,18 @@ export type Database = {
           clarifying_questions?: Json
           created_at?: string
           error_message?: string | null
+          freshness_days?: number | null
           id?: string
+          intent_domain?: string | null
+          intent_locale?: string | null
+          needs_live_data?: boolean
           raw_input?: string
           recommendation?: string | null
           restated_problem?: string | null
           status?: string
           title?: string | null
           updated_at?: string
+          used_live_search?: boolean
           user_id?: string
         }
         Relationships: []
@@ -258,7 +395,26 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      match_knowledge_chunks: {
+        Args: {
+          match_count?: number
+          max_age_days?: number
+          min_similarity?: number
+          query_embedding: string
+        }
+        Returns: {
+          chunk_id: string
+          content: string
+          document_id: string
+          domain: string
+          fetched_at: string
+          is_official: boolean
+          published_date: string
+          similarity: number
+          title: string
+          url: string
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never

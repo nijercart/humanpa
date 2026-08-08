@@ -160,7 +160,7 @@ function NeedDetail() {
                 className="mt-3"
                 size="sm"
                 onClick={() => researchMutation.mutate()}
-                disabled={researchMutation.isPending || outOfQuota}
+                disabled={researchMutation.isPending}
               >
                 Try the research again
               </Button>

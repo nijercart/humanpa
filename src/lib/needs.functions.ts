@@ -58,10 +58,14 @@ export const createNeed = createServerFn({ method: "POST" })
     if (error || !need) throw new Error(error?.message ?? "Could not save your need.");
 
     const { clarifyNeed } = await import("@/lib/humanos.server");
+    const { classifyIntent } = await import("@/lib/intent.server");
     const { describeAiError } = await import("@/lib/ai-gateway.server");
 
     try {
-      const clarified = await clarifyNeed(data.rawInput);
+      const [clarified, intent] = await Promise.all([
+        clarifyNeed(data.rawInput),
+        classifyIntent(data.rawInput),
+      ]);
       const { error: updateError } = await supabase
         .from("needs")
         .update({
@@ -69,6 +73,10 @@ export const createNeed = createServerFn({ method: "POST" })
           restated_problem: clarified.restatedProblem,
           assumptions: clarified.assumptions,
           clarifying_questions: clarified.questions,
+          intent_domain: intent.domain,
+          intent_locale: intent.locale,
+          freshness_days: intent.freshnessDays,
+          needs_live_data: intent.needsLiveData,
           status: "clarified",
           error_message: null,
         })

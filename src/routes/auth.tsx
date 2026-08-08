@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuthUser } from "@/hooks/use-auth-user";
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable/index";
+// import { lovable } from "@/integrations/lovable/index";
 
 type AuthSearch = { redirect?: string | undefined };
 
@@ -65,9 +65,17 @@ function AuthPage() {
           options: { emailRedirectTo: `${window.location.origin}${destination}` },
         });
         if (error) throw error;
+        // Email verification flow disabled — accounts are auto-confirmed.
+        // if (!data.session) {
+        //   setSent(true);
+        //   return;
+        // }
         if (!data.session) {
-          setSent(true);
-          return;
+          const { error: signInError } = await supabase.auth.signInWithPassword({
+            email,
+            password,
+          });
+          if (signInError) throw signInError;
         }
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -81,22 +89,24 @@ function AuthPage() {
     }
   }
 
-  async function handleGoogle() {
-    setBusy(true);
-    try {
-      const result = await lovable.auth.signInWithOAuth("google", {
-        redirect_uri: `${window.location.origin}/auth?redirect=${encodeURIComponent(destination)}`,
-      });
-      if (result.error) {
-        toast.error(result.error.message ?? "Google sign-in failed.");
-        return;
-      }
-      if (result.redirected) return;
-      navigate({ to: destination });
-    } finally {
-      setBusy(false);
-    }
-  }
+  // Google sign-in hidden.
+  // async function handleGoogle() {
+  //   setBusy(true);
+  //   try {
+  //     const result = await lovable.auth.signInWithOAuth("google", {
+  //       redirect_uri: `${window.location.origin}/auth?redirect=${encodeURIComponent(destination)}`,
+  //     });
+  //     if (result.error) {
+  //       toast.error(result.error.message ?? "Google sign-in failed.");
+  //       return;
+  //     }
+  //     if (result.redirected) return;
+  //     navigate({ to: destination });
+  //   } finally {
+  //     setBusy(false);
+  //   }
+  // }
+
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -120,20 +130,8 @@ function AuthPage() {
           </div>
         ) : (
           <>
-            <Button
-              variant="outline"
-              className="mt-8 w-full"
-              onClick={handleGoogle}
-              disabled={busy}
-            >
-              Continue with Google
-            </Button>
+            <div className="mt-8" />
 
-            <div className="my-6 flex items-center gap-3 text-xs uppercase tracking-widest text-muted-foreground">
-              <span className="h-px flex-1 bg-rule" />
-              or
-              <span className="h-px flex-1 bg-rule" />
-            </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-1.5">

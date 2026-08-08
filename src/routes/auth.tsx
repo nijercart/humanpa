@@ -128,20 +128,8 @@ function AuthPage() {
           </div>
         ) : (
           <>
-            <Button
-              variant="outline"
-              className="mt-8 w-full"
-              onClick={handleGoogle}
-              disabled={busy}
-            >
-              Continue with Google
-            </Button>
+            <div className="mt-8" />
 
-            <div className="my-6 flex items-center gap-3 text-xs uppercase tracking-widest text-muted-foreground">
-              <span className="h-px flex-1 bg-rule" />
-              or
-              <span className="h-px flex-1 bg-rule" />
-            </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-1.5">

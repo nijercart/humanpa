@@ -30,7 +30,7 @@ export async function retrieveKnowledge(
     const { data, error } = await supabaseAdmin.rpc("match_knowledge_chunks", {
       query_embedding: embedding as unknown as string,
       match_count: opts.limit ?? 14,
-      max_age_days: opts.maxAgeDays ?? undefined,
+      ...(typeof opts.maxAgeDays === "number" ? { max_age_days: opts.maxAgeDays } : {}),
       min_similarity: 0.35,
     });
     if (error) {

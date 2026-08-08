@@ -89,22 +89,24 @@ function AuthPage() {
     }
   }
 
-  async function handleGoogle() {
-    setBusy(true);
-    try {
-      const result = await lovable.auth.signInWithOAuth("google", {
-        redirect_uri: `${window.location.origin}/auth?redirect=${encodeURIComponent(destination)}`,
-      });
-      if (result.error) {
-        toast.error(result.error.message ?? "Google sign-in failed.");
-        return;
-      }
-      if (result.redirected) return;
-      navigate({ to: destination });
-    } finally {
-      setBusy(false);
-    }
-  }
+  // Google sign-in hidden.
+  // async function handleGoogle() {
+  //   setBusy(true);
+  //   try {
+  //     const result = await lovable.auth.signInWithOAuth("google", {
+  //       redirect_uri: `${window.location.origin}/auth?redirect=${encodeURIComponent(destination)}`,
+  //     });
+  //     if (result.error) {
+  //       toast.error(result.error.message ?? "Google sign-in failed.");
+  //       return;
+  //     }
+  //     if (result.redirected) return;
+  //     navigate({ to: destination });
+  //   } finally {
+  //     setBusy(false);
+  //   }
+  // }
+
 
   return (
     <div className="flex min-h-screen flex-col">

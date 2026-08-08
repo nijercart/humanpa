@@ -65,9 +65,17 @@ function AuthPage() {
           options: { emailRedirectTo: `${window.location.origin}${destination}` },
         });
         if (error) throw error;
+        // Email verification flow disabled — accounts are auto-confirmed.
+        // if (!data.session) {
+        //   setSent(true);
+        //   return;
+        // }
         if (!data.session) {
-          setSent(true);
-          return;
+          const { error: signInError } = await supabase.auth.signInWithPassword({
+            email,
+            password,
+          });
+          if (signInError) throw signInError;
         }
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });

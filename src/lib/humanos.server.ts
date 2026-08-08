@@ -185,6 +185,8 @@ export async function researchNeed(input: {
   restatedProblem: string;
   answers: { question: string; answer: string }[];
   intent?: { locale?: string; freshnessDays?: number; needsLiveData?: boolean };
+  /** When false (daily allowance used up) we answer from stored evidence or not at all. */
+  allowLiveSearch?: boolean;
 }): Promise<ResearchOutcome> {
   const gateway = createLovableAiGatewayProvider(requireLovableApiKey());
   const collected = new Map<string, WebResult>();
@@ -204,6 +206,10 @@ export async function researchNeed(input: {
   const retrievalQuery = `${input.restatedProblem}\n${input.rawInput}\n${answersText}`.slice(0, 4000);
   const reusedPassages = await retrieveKnowledge(retrievalQuery, { maxAgeDays: freshnessDays });
   const covered = hasCoverage(reusedPassages);
+  const allowLive = input.allowLiveSearch !== false;
+  if (!covered && !allowLive) {
+    throw new Error("QUOTA_EXHAUSTED");
+  }
   const usedLiveSearch = !covered;
 
   let briefing = "";

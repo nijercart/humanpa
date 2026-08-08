@@ -170,13 +170,21 @@ export type ResearchOutcome = {
   briefing: string;
   sources: WebResult[];
   synthesis: SynthesisResult;
+  reusedPassages: KnowledgePassage[];
+  reusedSourceCount: number;
+  freshSourceCount: number;
+  usedLiveSearch: boolean;
 };
 
-/** Step 2 — research the problem on the live web, then compare options and build an action plan. */
+/**
+ * Step 2 — answer from the shared knowledge base when it already covers the problem,
+ * and only go out to the live web when the stored evidence is thin or stale.
+ */
 export async function researchNeed(input: {
   rawInput: string;
   restatedProblem: string;
   answers: { question: string; answer: string }[];
+  intent?: { locale?: string; freshnessDays?: number; needsLiveData?: boolean };
 }): Promise<ResearchOutcome> {
   const gateway = createLovableAiGatewayProvider(requireLovableApiKey());
   const collected = new Map<string, WebResult>();
@@ -190,39 +198,92 @@ export async function researchNeed(input: {
     `Today's date: ${new Date().toISOString().slice(0, 10)}`,
   ].join("\n");
 
-  const research = streamText({
-    model: gateway(HUMANOS_MODEL),
-    stopWhen: stepCountIs(50),
-    system: [
-      "You are HumanOS, a research operator for real-life problems.",
-      "Use the web_search tool repeatedly until you can answer with confidence.",
-      "Prefer official, institutional and primary sources; corroborate anything that costs money or has a deadline.",
-      "Never invent facts, prices, deadlines or URLs. If something cannot be verified, say so plainly.",
-      "Finish with a compact briefing: what is true, what the realistic routes are, what it costs, and what to watch out for. Cite URLs inline.",
-      "Search in whichever language finds the best sources, but write the briefing itself in the same language the person used.",
-      LANGUAGE_RULE,
-    ].join(" "),
-    prompt: `${context}\n\nResearch this thoroughly, then write the briefing.`,
-    tools: {
-      web_search: tool({
-        description: "Search the live web for current, citable information.",
-        inputSchema: z.object({ query: z.string() }),
-        execute: async ({ query }) => {
-          const results = await webSearch(query);
-          for (const result of results) collected.set(result.url, result);
-          return results.map((r) => ({
-            title: r.title,
-            url: r.url,
-            snippet: r.snippet,
-            official: r.isOfficial,
-          }));
-        },
-      }),
-    },
-  });
+  // --- Retrieve first: what do we already know?
+  const freshnessDays = input.intent?.freshnessDays ?? 90;
+  const answersText = input.answers.map((a) => `${a.question} ${a.answer}`).join(" ");
+  const retrievalQuery = `${input.restatedProblem}\n${input.rawInput}\n${answersText}`.slice(0, 4000);
+  const reusedPassages = await retrieveKnowledge(retrievalQuery, { maxAgeDays: freshnessDays });
+  const covered = hasCoverage(reusedPassages);
+  const usedLiveSearch = !covered;
 
-  const briefing = await research.text;
-  const sources = [...collected.values()];
+  let briefing = "";
+
+  if (usedLiveSearch) {
+    const research = streamText({
+      model: gateway(HUMANOS_MODEL),
+      stopWhen: stepCountIs(50),
+      system: [
+        "You are HumanOS, a research operator for real-life problems.",
+        "Use the web_search tool repeatedly until you can answer with confidence.",
+        "Prefer official, institutional and primary sources; corroborate anything that costs money or has a deadline.",
+        "Never invent facts, prices, deadlines or URLs. If something cannot be verified, say so plainly.",
+        "Finish with a compact briefing: what is true, what the realistic routes are, what it costs, and what to watch out for. Cite URLs inline.",
+        "Search in whichever language finds the best sources, but write the briefing itself in the same language the person used.",
+        LANGUAGE_RULE,
+      ].join(" "),
+      prompt: [
+        context,
+        reusedPassages.length
+          ? `\nAlready-verified notes from earlier research (still cite their URLs):\n${reusedPassages
+              .slice(0, 8)
+              .map((p) => `- ${p.url}: ${p.content.slice(0, 400)}`)
+              .join("\n")}`
+          : "",
+        "\nResearch this thoroughly, then write the briefing.",
+      ].join("\n"),
+      tools: {
+        web_search: tool({
+          description: "Search the live web for current, citable information.",
+          inputSchema: z.object({ query: z.string() }),
+          execute: async ({ query }) => {
+            const results = await webSearch(query);
+            for (const result of results) collected.set(result.url, result);
+            return results.map((r) => ({
+              title: r.title,
+              url: r.url,
+              snippet: r.snippet,
+              official: r.isOfficial,
+            }));
+          },
+        }),
+      },
+    });
+
+    briefing = await research.text;
+  } else {
+    // Cache path: summarize the stored evidence instead of paying for the web again.
+    const grounding = reusedPassages
+      .slice(0, 12)
+      .map((p) => `- ${p.title} (${p.url}, saved ${p.fetchedAt.slice(0, 10)}):\n${p.content.slice(0, 1200)}`)
+      .join("\n\n");
+
+    const cached = streamText({
+      model: gateway(HUMANOS_MODEL),
+      system: [
+        "You are HumanOS. Answer strictly from the saved evidence you are given.",
+        "Do not invent facts, prices, deadlines or URLs. If the evidence does not cover something, say so plainly.",
+        "Write a compact briefing: what is true, the realistic routes, what it costs, what to watch out for. Cite URLs inline.",
+        LANGUAGE_RULE,
+      ].join(" "),
+      prompt: `${context}\n\nSaved evidence:\n${grounding}\n\nWrite the briefing.`,
+    });
+    briefing = await cached.text;
+  }
+
+  const freshResults = [...collected.values()];
+
+  // --- Feed the flywheel: store what we just read so the next person reuses it.
+  if (usedLiveSearch && freshResults.length) {
+    const ingestOpts: { maxPages: number; language?: string } = { maxPages: 8 };
+    if (input.intent?.locale) ingestOpts.language = input.intent.locale;
+    await ingestResults(freshResults, ingestOpts);
+  }
+
+  const reusedSources = passagesToSources(reusedPassages);
+  const sources = [...reusedSources];
+  for (const result of freshResults) {
+    if (!sources.some((s) => s.url === result.url)) sources.push(result);
+  }
 
   const synthesisPrompt = [
     context,
@@ -247,7 +308,6 @@ export async function researchNeed(input: {
     await generateJson(gateway(HUMANOS_MODEL), { prompt: synthesisPrompt }),
   );
 
-
   // Enforce the prompt's limits in code rather than in the schema.
   parsed.options = parsed.options.slice(0, 4);
   parsed.steps = parsed.steps.slice(0, 10);
@@ -255,5 +315,13 @@ export async function researchNeed(input: {
     parsed.options[0]!.recommended = true;
   }
 
-  return { briefing, sources, synthesis: parsed };
+  return {
+    briefing,
+    sources,
+    synthesis: parsed,
+    reusedPassages,
+    reusedSourceCount: reusedSources.length,
+    freshSourceCount: sources.length - reusedSources.length,
+    usedLiveSearch,
+  };
 }

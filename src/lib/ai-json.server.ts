@@ -22,7 +22,7 @@ export function extractJson(text: string | undefined): unknown {
  * "No output generated" message, so we capture the stream error and rethrow it.
  */
 export async function readStreamText(result: {
-  text: Promise<string>;
+  text: PromiseLike<string>;
 }, captured: { error?: unknown }): Promise<string> {
   try {
     const text = await result.text;

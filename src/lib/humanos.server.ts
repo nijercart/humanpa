@@ -2,7 +2,7 @@ import { stepCountIs, streamText, tool } from "ai";
 import { z } from "zod";
 
 import { createLovableAiGatewayProvider, HUMANOS_MODEL, requireLovableApiKey } from "./ai-gateway.server";
-import { generateJson } from "./ai-json.server";
+import { generateJson, readStreamText } from "./ai-json.server";
 import {
   hasCoverage,
   ingestResults,

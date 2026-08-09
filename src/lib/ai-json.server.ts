@@ -17,6 +17,27 @@ export function extractJson(text: string | undefined): unknown {
 }
 
 /**
+ * Read a streamed response, surfacing the real provider failure.
+ * `result.text` alone collapses gateway errors (402, 429, …) into a useless
+ * "No output generated" message, so we capture the stream error and rethrow it.
+ */
+export async function readStreamText(result: {
+  text: Promise<string>;
+}, captured: { error?: unknown }): Promise<string> {
+  try {
+    const text = await result.text;
+    if (captured.error) throw captured.error;
+    return text;
+  } catch (error) {
+    if (captured.error) {
+      const inner = captured.error;
+      throw inner instanceof Error ? inner : new Error(String(inner));
+    }
+    throw error;
+  }
+}
+
+/**
  * Ask for JSON as plain text and normalize it ourselves.
  * Structured-output validation was rejecting perfectly usable answers.
  */
@@ -24,10 +45,15 @@ export async function generateJson(
   model: ReturnType<ReturnType<typeof createLovableAiGatewayProvider>>,
   args: { system?: string; prompt: string },
 ): Promise<unknown> {
+  const captured: { error?: unknown } = {};
   const result = streamText({
     model,
     ...(args.system ? { system: args.system } : {}),
     prompt: `${args.prompt}\n\nReply with a single JSON object only. No markdown, no commentary.`,
+    onError: ({ error }) => {
+      captured.error = error;
+    },
   });
-  return extractJson(await result.text);
+  return extractJson(await readStreamText(result, captured));
 }
+

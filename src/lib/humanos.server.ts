@@ -213,10 +213,14 @@ export async function researchNeed(input: {
   const usedLiveSearch = !covered;
 
   let briefing = "";
+  const streamError: { error?: unknown } = {};
 
   if (usedLiveSearch) {
     const research = streamText({
       model: gateway(HUMANOS_MODEL),
+      onError: ({ error }) => {
+        streamError.error = error;
+      },
       stopWhen: stepCountIs(50),
       system: [
         "You are HumanOS, a research operator for real-life problems.",

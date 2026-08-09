@@ -259,7 +259,7 @@ export async function researchNeed(input: {
       },
     });
 
-    briefing = await research.text;
+    briefing = await readStreamText(research, streamError);
   } else {
     // Cache path: summarize the stored evidence instead of paying for the web again.
     const grounding = reusedPassages
@@ -269,6 +269,9 @@ export async function researchNeed(input: {
 
     const cached = streamText({
       model: gateway(HUMANOS_MODEL),
+      onError: ({ error }) => {
+        streamError.error = error;
+      },
       system: [
         "You are HumanOS. Answer strictly from the saved evidence you are given.",
         "Do not invent facts, prices, deadlines or URLs. If the evidence does not cover something, say so plainly.",
@@ -277,7 +280,7 @@ export async function researchNeed(input: {
       ].join(" "),
       prompt: `${context}\n\nSaved evidence:\n${grounding}\n\nWrite the briefing.`,
     });
-    briefing = await cached.text;
+    briefing = await readStreamText(cached, streamError);
   }
 
   const freshResults = [...collected.values()];

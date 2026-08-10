@@ -19,23 +19,46 @@ export function extractJson(text: string | undefined): unknown {
 /**
  * Read a streamed response, surfacing the real provider failure.
  * `result.text` alone collapses gateway errors (402, 429, …) into a useless
- * "No output generated" message, so we capture the stream error and rethrow it.
+ * "No output generated" message, so we drain the full stream first — that is
+ * where the AI SDK emits `error` parts — and rethrow the real cause.
  */
-export async function readStreamText(result: {
-  text: PromiseLike<string>;
-}, captured: { error?: unknown }): Promise<string> {
+export async function readStreamText(
+  result: {
+    text: PromiseLike<string>;
+    fullStream?: AsyncIterable<{ type: string; error?: unknown }>;
+  },
+  captured: { error?: unknown },
+): Promise<string> {
+  const fail = (fallback: unknown): never => {
+    const inner = captured.error ?? fallback;
+    throw inner instanceof Error ? inner : new Error(describeUnknown(inner));
+  };
+
   try {
+    if (result.fullStream) {
+      for await (const part of result.fullStream) {
+        if (part.type === "error") captured.error = part.error;
+      }
+    }
+    if (captured.error) fail(captured.error);
     const text = await result.text;
-    if (captured.error) throw captured.error;
+    if (captured.error) fail(captured.error);
     return text;
   } catch (error) {
-    if (captured.error) {
-      const inner = captured.error;
-      throw inner instanceof Error ? inner : new Error(String(inner));
-    }
-    throw error;
+    return fail(error);
   }
 }
+
+/** Provider errors often arrive as plain objects; keep their detail readable. */
+function describeUnknown(value: unknown): string {
+  if (typeof value === "string") return value;
+  try {
+    return JSON.stringify(value) ?? String(value);
+  } catch {
+    return String(value);
+  }
+}
+
 
 /**
  * Ask for JSON as plain text and normalize it ourselves.

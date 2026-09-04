@@ -108,14 +108,12 @@ export const runResearch = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
 
-    const { count: usedToday, error: quotaError } = await supabase
-      .from("research_runs")
-      .select("id", { count: "exact", head: true })
-      .gte("created_at", startOfUtcDay());
-    if (quotaError) throw new Error(quotaError.message);
-    // A run only costs quota when it has to hit the live web; answers served
+    const { loadEntitlements } = await import("@/lib/entitlements.server");
+    const entitlements = await loadEntitlements(userId);
+    // A run only costs a credit when it has to hit the live web; answers served
     // from the shared knowledge base are free.
-    const allowLiveSearch = (usedToday ?? 0) < DAILY_RESEARCH_LIMIT;
+    const allowLiveSearch = entitlements.balance > 0;
+
 
     const { data: need, error } = await supabase
       .from("needs")

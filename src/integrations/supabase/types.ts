@@ -14,6 +14,44 @@ export type Database = {
   }
   public: {
     Tables: {
+      credit_transactions: {
+        Row: {
+          created_at: string
+          delta: number
+          id: string
+          need_id: string | null
+          reason: string
+          stripe_event_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          delta: number
+          id?: string
+          need_id?: string | null
+          reason: string
+          stripe_event_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          delta?: number
+          id?: string
+          need_id?: string | null
+          reason?: string
+          stripe_event_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_transactions_need_id_fkey"
+            columns: ["need_id"]
+            isOneToOne: false
+            referencedRelation: "needs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       knowledge_chunks: {
         Row: {
           content: string
@@ -361,6 +399,54 @@ export type Database = {
         }
         Relationships: []
       }
+      plans: {
+        Row: {
+          active: boolean
+          api_access: boolean
+          code: string
+          created_at: string
+          deep_research: boolean
+          monthly_credits: number
+          name: string
+          price_cents: number
+          priority_processing: boolean
+          saved_case_limit: number | null
+          sort_order: number
+          stripe_price_id: string | null
+          team_features: boolean
+        }
+        Insert: {
+          active?: boolean
+          api_access?: boolean
+          code: string
+          created_at?: string
+          deep_research?: boolean
+          monthly_credits?: number
+          name: string
+          price_cents?: number
+          priority_processing?: boolean
+          saved_case_limit?: number | null
+          sort_order?: number
+          stripe_price_id?: string | null
+          team_features?: boolean
+        }
+        Update: {
+          active?: boolean
+          api_access?: boolean
+          code?: string
+          created_at?: string
+          deep_research?: boolean
+          monthly_credits?: number
+          name?: string
+          price_cents?: number
+          priority_processing?: boolean
+          saved_case_limit?: number | null
+          sort_order?: number
+          stripe_price_id?: string | null
+          team_features?: boolean
+        }
+        Relationships: []
+      }
       research_runs: {
         Row: {
           created_at: string
@@ -390,11 +476,101 @@ export type Database = {
           },
         ]
       }
+      user_credits: {
+        Row: {
+          balance: number
+          period_start: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          balance?: number
+          period_start?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          balance?: number
+          period_start?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_subscriptions: {
+        Row: {
+          created_at: string
+          current_period_end: string | null
+          current_period_start: string
+          plan_code: string
+          status: string
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string
+          plan_code?: string
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string
+          plan_code?: string
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_subscriptions_plan_code_fkey"
+            columns: ["plan_code"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      current_entitlements: {
+        Args: { p_user: string }
+        Returns: {
+          api_access: boolean
+          balance: number
+          deep_research: boolean
+          monthly_credits: number
+          period_start: string
+          plan_code: string
+          plan_name: string
+          priority_processing: boolean
+          saved_case_limit: number
+          status: string
+          team_features: boolean
+        }[]
+      }
+      grant_plan_credits: {
+        Args: {
+          p_event_id: string
+          p_period_start: string
+          p_plan: string
+          p_user: string
+        }
+        Returns: boolean
+      }
       match_knowledge_chunks: {
         Args: {
           match_count?: number
@@ -414,6 +590,10 @@ export type Database = {
           title: string
           url: string
         }[]
+      }
+      spend_credit: {
+        Args: { p_need: string; p_user: string }
+        Returns: boolean
       }
     }
     Enums: {

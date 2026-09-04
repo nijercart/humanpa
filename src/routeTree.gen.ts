@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedNeedsRouteImport } from './routes/_authenticated/needs'
+import { Route as AuthenticatedPlansRouteImport } from './routes/_authenticated/plans'
 import { Route as AuthenticatedNeedNeedIdRouteImport } from './routes/_authenticated/need.$needId'
 import { Route as ApiPublicStripeWebhookRouteImport } from './routes/api/public/stripe-webhook'
 
@@ -35,6 +36,11 @@ const AuthenticatedNeedsRoute = AuthenticatedNeedsRouteImport.update({
   path: '/needs',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedPlansRoute = AuthenticatedPlansRouteImport.update({
+  id: '/plans',
+  path: '/plans',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedNeedNeedIdRoute = AuthenticatedNeedNeedIdRouteImport.update({
   id: '/need/$needId',
   path: '/need/$needId',
@@ -50,6 +56,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/needs': typeof AuthenticatedNeedsRoute
+  '/plans': typeof AuthenticatedPlansRoute
   '/need/$needId': typeof AuthenticatedNeedNeedIdRoute
   '/api/public/stripe-webhook': typeof ApiPublicStripeWebhookRoute
 }
@@ -57,6 +64,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/needs': typeof AuthenticatedNeedsRoute
+  '/plans': typeof AuthenticatedPlansRoute
   '/need/$needId': typeof AuthenticatedNeedNeedIdRoute
   '/api/public/stripe-webhook': typeof ApiPublicStripeWebhookRoute
 }
@@ -66,21 +74,34 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/_authenticated/needs': typeof AuthenticatedNeedsRoute
+  '/_authenticated/plans': typeof AuthenticatedPlansRoute
   '/_authenticated/need/$needId': typeof AuthenticatedNeedNeedIdRoute
   '/api/public/stripe-webhook': typeof ApiPublicStripeWebhookRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    '/' | '/auth' | '/needs' | '/need/$needId' | '/api/public/stripe-webhook'
+    | '/'
+    | '/auth'
+    | '/needs'
+    | '/plans'
+    | '/need/$needId'
+    | '/api/public/stripe-webhook'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/needs' | '/need/$needId' | '/api/public/stripe-webhook'
+  to:
+    | '/'
+    | '/auth'
+    | '/needs'
+    | '/plans'
+    | '/need/$needId'
+    | '/api/public/stripe-webhook'
   id:
     | '__root__'
     | '/'
     | '/_authenticated'
     | '/auth'
     | '/_authenticated/needs'
+    | '/_authenticated/plans'
     | '/_authenticated/need/$needId'
     | '/api/public/stripe-webhook'
   fileRoutesById: FileRoutesById
@@ -122,6 +143,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedNeedsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/plans': {
+      id: '/_authenticated/plans'
+      path: '/plans'
+      fullPath: '/plans'
+      preLoaderRoute: typeof AuthenticatedPlansRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/need/$needId': {
       id: '/_authenticated/need/$needId'
       path: '/need/$needId'
@@ -141,11 +169,13 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedNeedsRoute: typeof AuthenticatedNeedsRoute
+  AuthenticatedPlansRoute: typeof AuthenticatedPlansRoute
   AuthenticatedNeedNeedIdRoute: typeof AuthenticatedNeedNeedIdRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedNeedsRoute: AuthenticatedNeedsRoute,
+  AuthenticatedPlansRoute: AuthenticatedPlansRoute,
   AuthenticatedNeedNeedIdRoute: AuthenticatedNeedNeedIdRoute,
 }
 

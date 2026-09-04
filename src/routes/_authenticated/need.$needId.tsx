@@ -262,11 +262,20 @@ function NeedDetail() {
               </Button>
               {quota.data ? (
                 <p className="text-xs text-muted-foreground">
-                  {outOfQuota
-                    ? `Today's ${quota.data.limit} live web researches are used up — we can still answer from saved research. Resets at midnight UTC.`
-                    : `${quota.data.remaining} of ${quota.data.limit} live web researches left today. Answers from saved research are free.`}
+                  {outOfQuota ? (
+                    <>
+                      You're out of research credits on the {quota.data.planName} plan — we can still
+                      answer from saved research.{" "}
+                      <Link to="/plans" className="underline underline-offset-4">
+                        See plans
+                      </Link>
+                    </>
+                  ) : (
+                    `${quota.data.remaining} of ${quota.data.limit} research credits left this month. Answers from saved research are free.`
+                  )}
                 </p>
               ) : null}
+
             </div>
 
           </section>

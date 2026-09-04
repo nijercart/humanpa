@@ -110,10 +110,15 @@ function NeedsPage() {
                 <>
                   {" "}
                   <span className="text-foreground">
-                    {quota.data.remaining} of {quota.data.limit} live web researches left today.
-                  </span>
+                    {quota.data.remaining} of {quota.data.limit} research credits left on{" "}
+                    {quota.data.planName}.
+                  </span>{" "}
+                  <Link to="/plans" className="underline underline-offset-4">
+                    Plans
+                  </Link>
                 </>
               ) : null}
+
             </p>
             <Button type="submit" disabled={createMutation.isPending}>
               {createMutation.isPending ? "Reading…" : "Work it out"}

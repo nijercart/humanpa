@@ -48,6 +48,19 @@ export const createNeed = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
 
+    const { loadEntitlements } = await import("@/lib/entitlements.server");
+    const entitlements = await loadEntitlements(userId);
+    if (entitlements.savedCaseLimit !== null) {
+      const { count } = await supabase.from("needs").select("id", { count: "exact", head: true });
+      if ((count ?? 0) >= entitlements.savedCaseLimit) {
+        throw new Error(
+          `Your ${entitlements.planName} plan saves ${entitlements.savedCaseLimit} cases. Delete one or upgrade your plan to save more.`,
+        );
+      }
+    }
+
+
+
     const { data: need, error } = await supabase
       .from("needs")
       .insert({ user_id: userId, raw_input: data.rawInput, status: "clarifying" })

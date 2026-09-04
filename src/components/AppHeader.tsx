@@ -28,11 +28,18 @@ export function AppHeader() {
 
         {user ? (
           <div className="flex items-center gap-4">
+            <Link
+              to="/plans"
+              className="text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+            >
+              Plans &amp; credits
+            </Link>
             <span className="hidden text-xs text-muted-foreground sm:inline">{user.email}</span>
             <Button variant="ghost" size="sm" onClick={handleSignOut}>
               Sign out
             </Button>
           </div>
+
         ) : (
           <Button asChild size="sm" variant="outline">
             <Link to="/auth">Sign in</Link>

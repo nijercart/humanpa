@@ -17,30 +17,28 @@ const ToggleStepInput = z.object({ stepId: z.string().uuid(), done: z.boolean() 
 
 export type ClarifyingQuestion = { id: string; question: string; why: string };
 
-/** How many successful researches one account can run per calendar day (UTC). */
-export const DAILY_RESEARCH_LIMIT = 2;
-
-function startOfUtcDay(): string {
-  const now = new Date();
-  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())).toISOString();
-}
-
-/** How many researches the signed-in user has left today. */
+/** Plan, credit balance and saved-case allowance for the signed-in user. */
 export const getResearchQuota = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { count, error } = await context.supabase
-      .from("research_runs")
-      .select("id", { count: "exact", head: true })
-      .gte("created_at", startOfUtcDay());
-    if (error) throw new Error(error.message);
-    const used = count ?? 0;
+    const { loadEntitlements } = await import("@/lib/entitlements.server");
+    const entitlements = await loadEntitlements(context.userId);
+
+    const { count } = await context.supabase
+      .from("needs")
+      .select("id", { count: "exact", head: true });
+
     return {
-      used,
-      limit: DAILY_RESEARCH_LIMIT,
-      remaining: Math.max(0, DAILY_RESEARCH_LIMIT - used),
+      planCode: entitlements.planCode,
+      planName: entitlements.planName,
+      limit: entitlements.monthlyCredits,
+      remaining: entitlements.balance,
+      deepResearch: entitlements.deepResearch,
+      savedCaseLimit: entitlements.savedCaseLimit,
+      savedCases: count ?? 0,
     };
   });
+
 
 
 /** Create a need and immediately restate the problem + ask clarifying questions. */
@@ -49,6 +47,19 @@ export const createNeed = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => CreateNeedInput.parse(input))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
+
+    const { loadEntitlements } = await import("@/lib/entitlements.server");
+    const entitlements = await loadEntitlements(userId);
+    if (entitlements.savedCaseLimit !== null) {
+      const { count } = await supabase.from("needs").select("id", { count: "exact", head: true });
+      if ((count ?? 0) >= entitlements.savedCaseLimit) {
+        throw new Error(
+          `Your ${entitlements.planName} plan saves ${entitlements.savedCaseLimit} cases. Delete one or upgrade your plan to save more.`,
+        );
+      }
+    }
+
+
 
     const { data: need, error } = await supabase
       .from("needs")
@@ -97,14 +108,12 @@ export const runResearch = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
 
-    const { count: usedToday, error: quotaError } = await supabase
-      .from("research_runs")
-      .select("id", { count: "exact", head: true })
-      .gte("created_at", startOfUtcDay());
-    if (quotaError) throw new Error(quotaError.message);
-    // A run only costs quota when it has to hit the live web; answers served
+    const { loadEntitlements } = await import("@/lib/entitlements.server");
+    const entitlements = await loadEntitlements(userId);
+    // A run only costs a credit when it has to hit the live web; answers served
     // from the shared knowledge base are free.
-    const allowLiveSearch = (usedToday ?? 0) < DAILY_RESEARCH_LIMIT;
+    const allowLiveSearch = entitlements.balance > 0;
+
 
     const { data: need, error } = await supabase
       .from("needs")
@@ -225,8 +234,10 @@ export const runResearch = createServerFn({ method: "POST" })
         );
       }
 
-      // Only live-web researches count against the daily allowance.
+      // Only live-web researches spend a credit.
       if (outcome.usedLiveSearch) {
+        const { spendCredit } = await import("@/lib/entitlements.server");
+        await spendCredit(userId, need.id as string);
         await supabase.from("research_runs").insert({ user_id: userId, need_id: need.id });
       }
 
@@ -235,8 +246,9 @@ export const runResearch = createServerFn({ method: "POST" })
     } catch (aiError) {
       const message =
         aiError instanceof Error && aiError.message === "QUOTA_EXHAUSTED"
-          ? `You've used your ${DAILY_RESEARCH_LIMIT} live researches for today, and we don't have saved evidence covering this one yet. The limit resets at midnight UTC — your problem and answers are saved.`
+          ? `You're out of research credits on the ${entitlements.planName} plan, and we don't have saved evidence covering this one yet. Upgrade your plan for more credits — your problem and answers are saved.`
           : describeAiError(aiError);
+
       await supabase.from("needs").update({ status: "error", error_message: message }).eq("id", need.id);
       throw new Error(message);
     }

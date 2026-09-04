@@ -17,30 +17,28 @@ const ToggleStepInput = z.object({ stepId: z.string().uuid(), done: z.boolean() 
 
 export type ClarifyingQuestion = { id: string; question: string; why: string };
 
-/** How many successful researches one account can run per calendar day (UTC). */
-export const DAILY_RESEARCH_LIMIT = 2;
-
-function startOfUtcDay(): string {
-  const now = new Date();
-  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())).toISOString();
-}
-
-/** How many researches the signed-in user has left today. */
+/** Plan, credit balance and saved-case allowance for the signed-in user. */
 export const getResearchQuota = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { count, error } = await context.supabase
-      .from("research_runs")
-      .select("id", { count: "exact", head: true })
-      .gte("created_at", startOfUtcDay());
-    if (error) throw new Error(error.message);
-    const used = count ?? 0;
+    const { loadEntitlements } = await import("@/lib/entitlements.server");
+    const entitlements = await loadEntitlements(context.userId);
+
+    const { count } = await context.supabase
+      .from("needs")
+      .select("id", { count: "exact", head: true });
+
     return {
-      used,
-      limit: DAILY_RESEARCH_LIMIT,
-      remaining: Math.max(0, DAILY_RESEARCH_LIMIT - used),
+      planCode: entitlements.planCode,
+      planName: entitlements.planName,
+      limit: entitlements.monthlyCredits,
+      remaining: entitlements.balance,
+      deepResearch: entitlements.deepResearch,
+      savedCaseLimit: entitlements.savedCaseLimit,
+      savedCases: count ?? 0,
     };
   });
+
 
 
 /** Create a need and immediately restate the problem + ask clarifying questions. */

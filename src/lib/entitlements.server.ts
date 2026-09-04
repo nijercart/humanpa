@@ -42,7 +42,7 @@ export async function loadEntitlements(userId: string): Promise<Entitlements> {
 export async function spendCredit(userId: string, needId: string | null): Promise<boolean> {
   const { data, error } = await supabaseAdmin.rpc("spend_credit", {
     p_user: userId,
-    p_need: needId,
+    p_need: needId ?? undefined,
   });
   if (error) throw new Error(error.message);
   return data === true;

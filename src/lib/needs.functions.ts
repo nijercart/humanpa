@@ -234,8 +234,10 @@ export const runResearch = createServerFn({ method: "POST" })
         );
       }
 
-      // Only live-web researches count against the daily allowance.
+      // Only live-web researches spend a credit.
       if (outcome.usedLiveSearch) {
+        const { spendCredit } = await import("@/lib/entitlements.server");
+        await spendCredit(userId, need.id as string);
         await supabase.from("research_runs").insert({ user_id: userId, need_id: need.id });
       }
 
@@ -244,8 +246,9 @@ export const runResearch = createServerFn({ method: "POST" })
     } catch (aiError) {
       const message =
         aiError instanceof Error && aiError.message === "QUOTA_EXHAUSTED"
-          ? `You've used your ${DAILY_RESEARCH_LIMIT} live researches for today, and we don't have saved evidence covering this one yet. The limit resets at midnight UTC — your problem and answers are saved.`
+          ? `You're out of research credits on the ${entitlements.planName} plan, and we don't have saved evidence covering this one yet. Upgrade your plan for more credits — your problem and answers are saved.`
           : describeAiError(aiError);
+
       await supabase.from("needs").update({ status: "error", error_message: message }).eq("id", need.id);
       throw new Error(message);
     }

@@ -5,12 +5,15 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 
 import { AppHeader } from "@/components/AppHeader";
+import { CreditsPanel } from "@/components/CreditsPanel";
 import { ActionPlan } from "@/components/need/ActionPlan";
 import { OptionsGrid } from "@/components/need/OptionsGrid";
 import { SourceList } from "@/components/need/SourceList";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { getNeed, getResearchQuota, runResearch, updateProblem } from "@/lib/needs.functions";
+import { useCreditStatus } from "@/hooks/use-credit-status";
+import { getNeed, runResearch, updateProblem } from "@/lib/needs.functions";
+
 
 type ClarifyingQuestion = { id: string; question: string; why: string };
 

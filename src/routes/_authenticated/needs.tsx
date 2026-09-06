@@ -47,13 +47,10 @@ function NeedsPage() {
   const list = useServerFn(listNeeds);
   const create = useServerFn(createNeed);
   const remove = useServerFn(deleteNeed);
-  const fetchQuota = useServerFn(getResearchQuota);
 
   const needs = useQuery({ queryKey: ["needs"], queryFn: () => list({ data: undefined }) });
-  const quota = useQuery({
-    queryKey: ["research-quota"],
-    queryFn: () => fetchQuota({ data: undefined }),
-  });
+  const quota = useCreditStatus();
+
 
 
   const createMutation = useMutation({

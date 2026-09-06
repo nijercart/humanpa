@@ -278,7 +278,11 @@ function NeedDetail() {
 
             </div>
 
+            <div className="mt-6">
+              <CreditsPanel compact />
+            </div>
           </section>
+
         ) : null}
 
         {researching ? <ResearchProgress /> : null}

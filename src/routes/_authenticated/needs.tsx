@@ -84,6 +84,11 @@ function NeedsPage() {
           Plain words are fine. Messy is fine. Start anywhere.
         </p>
 
+        <div className="mt-8">
+          <CreditsPanel />
+        </div>
+
+
         <form
           className="mt-8"
           onSubmit={(event) => {

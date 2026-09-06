@@ -5,9 +5,12 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 
 import { AppHeader } from "@/components/AppHeader";
+import { CreditsPanel } from "@/components/CreditsPanel";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { createNeed, deleteNeed, getResearchQuota, listNeeds } from "@/lib/needs.functions";
+import { useCreditStatus } from "@/hooks/use-credit-status";
+import { createNeed, deleteNeed, listNeeds } from "@/lib/needs.functions";
+
 
 export const Route = createFileRoute("/_authenticated/needs")({
   head: () => ({
@@ -47,13 +50,10 @@ function NeedsPage() {
   const list = useServerFn(listNeeds);
   const create = useServerFn(createNeed);
   const remove = useServerFn(deleteNeed);
-  const fetchQuota = useServerFn(getResearchQuota);
 
   const needs = useQuery({ queryKey: ["needs"], queryFn: () => list({ data: undefined }) });
-  const quota = useQuery({
-    queryKey: ["research-quota"],
-    queryFn: () => fetchQuota({ data: undefined }),
-  });
+  const quota = useCreditStatus();
+
 
 
   const createMutation = useMutation({
@@ -83,6 +83,11 @@ function NeedsPage() {
         <p className="mt-3 text-muted-foreground">
           Plain words are fine. Messy is fine. Start anywhere.
         </p>
+
+        <div className="mt-8">
+          <CreditsPanel />
+        </div>
+
 
         <form
           className="mt-8"

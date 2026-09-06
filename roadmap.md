@@ -2,6 +2,8 @@
 
 ## In progress
 - [ ] Plans & credits: DB schema (plans, subscriptions, credits, ledger), entitlements, credit-gated research, Plans page with Stripe checkout.
+- [ ] Live credits/quota status panel that auto-refreshes and shows exact remaining credits.
+
 
 ## Open
 - [ ] Stripe keys (`STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`) must be added before live checkout works.

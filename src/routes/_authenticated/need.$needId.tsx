@@ -5,12 +5,15 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 
 import { AppHeader } from "@/components/AppHeader";
+import { CreditsPanel } from "@/components/CreditsPanel";
 import { ActionPlan } from "@/components/need/ActionPlan";
 import { OptionsGrid } from "@/components/need/OptionsGrid";
 import { SourceList } from "@/components/need/SourceList";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { getNeed, getResearchQuota, runResearch, updateProblem } from "@/lib/needs.functions";
+import { useCreditStatus } from "@/hooks/use-credit-status";
+import { getNeed, runResearch, updateProblem } from "@/lib/needs.functions";
+
 
 type ClarifyingQuestion = { id: string; question: string; why: string };
 
@@ -65,17 +68,14 @@ function NeedDetail() {
   const fetchNeed = useServerFn(getNeed);
   const research = useServerFn(runResearch);
   const saveProblem = useServerFn(updateProblem);
-  const fetchQuota = useServerFn(getResearchQuota);
 
   const query = useQuery({
     queryKey: ["need", needId],
     queryFn: () => fetchNeed({ data: { needId } }),
   });
 
-  const quota = useQuery({
-    queryKey: ["research-quota"],
-    queryFn: () => fetchQuota({ data: undefined }),
-  });
+  const quota = useCreditStatus();
+
 
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [editing, setEditing] = useState(false);
@@ -278,7 +278,11 @@ function NeedDetail() {
 
             </div>
 
+            <div className="mt-6">
+              <CreditsPanel compact />
+            </div>
           </section>
+
         ) : null}
 
         {researching ? <ResearchProgress /> : null}

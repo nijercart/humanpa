@@ -68,17 +68,14 @@ function NeedDetail() {
   const fetchNeed = useServerFn(getNeed);
   const research = useServerFn(runResearch);
   const saveProblem = useServerFn(updateProblem);
-  const fetchQuota = useServerFn(getResearchQuota);
 
   const query = useQuery({
     queryKey: ["need", needId],
     queryFn: () => fetchNeed({ data: { needId } }),
   });
 
-  const quota = useQuery({
-    queryKey: ["research-quota"],
-    queryFn: () => fetchQuota({ data: undefined }),
-  });
+  const quota = useCreditStatus();
+
 
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [editing, setEditing] = useState(false);

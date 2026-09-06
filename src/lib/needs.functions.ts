@@ -28,6 +28,18 @@ export const getResearchQuota = createServerFn({ method: "POST" })
       .from("needs")
       .select("id", { count: "exact", head: true });
 
+    // Daily fair-use allowance and how much of it is left today (UTC day).
+    const now = new Date();
+    const dayStart = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0, 0),
+    );
+    const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000);
+    const dailyLimit = Math.max(2, Math.ceil(entitlements.monthlyCredits / 10));
+    const { count: todayCount } = await context.supabase
+      .from("research_runs")
+      .select("id", { count: "exact", head: true })
+      .gte("created_at", dayStart.toISOString());
+
     return {
       planCode: entitlements.planCode,
       planName: entitlements.planName,
@@ -36,8 +48,13 @@ export const getResearchQuota = createServerFn({ method: "POST" })
       deepResearch: entitlements.deepResearch,
       savedCaseLimit: entitlements.savedCaseLimit,
       savedCases: count ?? 0,
+      dailyLimit,
+      dailyUsed: todayCount ?? 0,
+      dailyRemaining: Math.max(0, dailyLimit - (todayCount ?? 0)),
+      resetsAt: dayEnd.toISOString(),
     };
   });
+
 
 
 

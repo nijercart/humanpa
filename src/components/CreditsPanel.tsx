@@ -1,11 +1,27 @@
 import { Link } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { useCreditStatus } from "@/hooks/use-credit-status";
 
+function useCountdown(target?: string) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
+  if (!target) return "";
+  const ms = Math.max(0, new Date(target).getTime() - now);
+  const h = Math.floor(ms / 3_600_000);
+  const m = Math.floor((ms % 3_600_000) / 60_000);
+  const s = Math.floor((ms % 60_000) / 1000);
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+}
+
 /** Always-current view of the plan, credits left and saved-case usage. */
 export function CreditsPanel({ compact = false }: { compact?: boolean }) {
   const status = useCreditStatus();
+  const countdown = useCountdown(status.data?.resetsAt);
 
   if (status.isLoading || !status.data) {
     return (
@@ -18,10 +34,20 @@ export function CreditsPanel({ compact = false }: { compact?: boolean }) {
     );
   }
 
-  const { planName, remaining, limit, savedCases, savedCaseLimit, deepResearch } = status.data;
+  const {
+    planName,
+    remaining,
+    limit,
+    savedCases,
+    savedCaseLimit,
+    deepResearch,
+    dailyLimit,
+    dailyRemaining,
+  } = status.data;
   const used = Math.max(0, limit - remaining);
   const pct = limit > 0 ? Math.min(100, Math.round((used / limit) * 100)) : 100;
   const empty = remaining <= 0;
+
 
   return (
     <div data-testid="credits-panel" className="rounded-lg border border-rule bg-paper p-4">

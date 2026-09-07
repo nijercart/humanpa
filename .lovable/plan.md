@@ -1,80 +1,80 @@
-# HumanOS plans and buyable credits
+# Finish HumanOS core MVP
 
-Today every account gets 2 free live researches per UTC day and cached Knowledge Flywheel answers are free. This replaces that with monthly subscription plans people can buy from their dashboard, each granting a monthly credit allowance plus feature access.
+The app already has auth, the Knowledge Flywheel, saved cases, plans/credits schema, entitlements, a Plans page and a live credits panel. To mark the core MVP complete we need to clean up the legacy daily-quota UI, make the Free plan truly "limited" (single-pass research), activate Stripe checkout, and run a full end-to-end verification. API access, team features and priority processing stay post-MVP.
 
-## Plans
+## What is in scope for core MVP
 
-| | Free | Starter | Pro (highlighted) | Expert | Business |
-| --- | --- | --- | --- | --- | --- |
-| Monthly | $0 | $19 | $49 | $129 | $349 |
-| Credits / month | 10 | 150 | 500 | 1,500 | 5,000 |
-| Research | Limited | yes | yes | yes | yes |
-| Deep Research | — | yes | yes | yes | yes |
-| Source citations | yes | yes | yes | yes | yes |
-| Saved cases | 3 | 20 | 100 | Unlimited | Unlimited |
-| Priority processing | — | — | yes | yes | yes |
-| API access | — | — | — | yes | yes |
-| Team features | — | — | — | — | yes |
+- Credit-based research gating (monthly credits, no daily cap).
+- Free plan = standard/single-pass research; paid plans = deep agentic research.
+- Stripe subscription checkout + billing portal + webhook-driven credit grants.
+- Saved-case limits enforced server-side.
+- Cached Knowledge Flywheel answers remain free and unlimited.
+- Live credits panel shows exact remaining credits and a clear upgrade CTA.
 
-## How it works for the user
+## What is out of scope (post-MVP)
 
-- Every account starts on Free with 10 credits.
-- A live web research costs 1 credit. A cached (flywheel) answer stays free — no credit, no limit.
-- Credits refill to the plan allowance at the start of each billing month; unused credits do not roll over.
-- "Saved cases" caps how many problems can be kept; at the cap the app asks the user to delete one or upgrade.
-- "Deep Research" is the current multi-step agentic search loop. Free is "Limited": a single shallow search pass, no deep loop.
-- "Priority processing" puts Pro and above ahead of Free/Starter when several researches run at once.
-- API access and Team features are gated flags shown on the plan but built later — the plan page marks them as included, and the app enforces the flag when those surfaces exist.
-- New "Plans & credits" page on the dashboard: current plan, credits left this month, upgrade/downgrade, and billing history. Buying opens Stripe Checkout; managing or cancelling opens the Stripe billing portal.
+- API access surface (keys, rate limits) for Expert/Business.
+- Team workspace/seats for Business.
+- Priority processing queue.
 
-## Research gating
+## Steps
 
-```text
-research requested
-  -> cached answer covers it? yes -> free, no credit
-  -> credits left this month? no  -> "Out of credits" + link to Plans
-  -> deep research allowed on plan? yes -> agentic loop, else single-pass search
-  -> on success -> deduct 1 credit and log it
-```
+### 1. Remove legacy daily-quota messaging
 
-A credit is only deducted after the research succeeds; failures cost nothing.
+The credit system replaces the old "2 researches per UTC day" cap, but the UI still shows a daily counter.
 
-## Technical plan
+- Update `getResearchQuota` in `src/lib/needs.functions.ts` to stop returning `dailyLimit`, `dailyUsed`, `dailyRemaining` and `resetsAt`.
+- Update `useCreditStatus` return type through the React Query hook.
+- Simplify `CreditsPanel` to show only: plan name, `remaining / limit` credits, progress bar, saved-case usage, and the "Buy more credits" button.
+- Update `needs.tsx` and `need.$needId.tsx` helper text to credit-only messaging.
 
-**Database (one migration, GRANTs + RLS in the same file)**
-- `plans` — code, name, price cents, stripe price id, monthly credits, saved case limit (null = unlimited), booleans for deep research / priority / api / team, sort order, active. Readable by `anon` and `authenticated`; seeded with the five rows above.
-- `user_subscriptions` — user_id (PK), plan code (default `free`), status, stripe customer id, stripe subscription id, current period start/end. Owner-only SELECT, no client writes.
-- `user_credits` — user_id (PK), balance, period_start. Owner-only SELECT, server writes only.
-- `credit_transactions` — user_id, delta, reason (`plan_grant` | `research` | `adjustment`), need_id, stripe_event_id (unique), created_at. Owner-only SELECT.
-- Security-definer functions: `spend_credit(user, need)` (atomic, cannot overspend), `apply_plan_grant(user, plan, period_start, event_id)` (idempotent monthly refill), `current_entitlements(user)` returning the merged plan + balance.
-- Trigger on new accounts creates the Free subscription, 10 credits, and the ledger row; one-time backfill for existing accounts.
-- `research_runs` stays as the historical log; the daily 2-per-day cap is removed in favour of credits.
+### 2. Implement Free "Limited" single-pass research
 
-**Payments (Stripe, your own keys — your stated choice)**
-- Secrets: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`.
-- `src/lib/billing.functions.ts` behind `requireSupabaseAuth`: `getBillingSummary`, `createCheckoutSession` (price resolved server-side from the `plans` row, never from the client), `createPortalSession`.
-- `src/routes/api/public/stripe-webhook.ts`: verifies the signature, then handles `checkout.session.completed`, `customer.subscription.updated/deleted`, and `invoice.paid` (monthly credit refill), all keyed on the Stripe event id so replays cannot double-credit.
+Currently every live run uses the deep agentic loop. The plan promises Free users a single shallow search pass.
 
-**App logic**
-- `src/lib/entitlements.server.ts` — one place that loads a user's plan, credits and limits.
-- `src/lib/needs.functions.ts` — replace the daily-quota check with the credit/entitlement check above; pass a `deepResearch` flag into `researchNeed`; enforce the saved-case cap in `createNeed`; deduct a credit only on a successful live run.
-- `src/lib/humanos.server.ts` — honour the `deepResearch` flag: full agentic loop when allowed, one search pass and synthesis when not.
+- Add a `deepResearch: boolean` argument to `researchNeed` in `src/lib/humanos.server.ts`.
+- Pass `deepResearch` from `runResearch` in `src/lib/needs.functions.ts` based on `entitlements.deepResearch`.
+- When `deepResearch` is false:
+  - Run one `webSearch` call with a query derived from the restated problem + answers.
+  - Ingest the results into the flywheel.
+  - Synthesize options/steps/recommendation from those sources only.
+- When `deepResearch` is true, keep the existing multi-step `streamText` + `web_search` tool loop.
+- Ensure the credit is still spent only after a successful live run, and cached answers still cost nothing.
 
-**UI**
-- New route `src/routes/_authenticated/plans.tsx`: current plan, credits remaining, the comparison table above, upgrade buttons, portal link, billing history, and its own `head()` metadata.
-- Header shows credits remaining and links to Plans.
-- `needs.tsx` / `need.$needId.tsx`: replace "researches left today" with "N credits left"; blocked states link to Plans; saved-case cap shows an upgrade prompt.
+### 3. Activate Stripe checkout
 
-**Note on Stripe:** Lovable's built-in payments would avoid handling keys but requires a paid workspace plan; per your choice this uses your own Stripe keys.
+Checkout code exists but cannot run without secrets.
 
-## Verification before hand-off
+- Add `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` via the secrets tool (requires your approval).
+- Confirm `src/routes/api/public/stripe-webhook.ts` handles:
+  - `checkout.session.completed` -> create subscription + grant credits.
+  - `customer.subscription.updated/deleted` -> update plan/status.
+  - `invoice.paid` -> idempotent monthly refill using `grant_plan_credits`.
+- Add a small admin helper (server-only, not exposed to the UI) so we can manually grant/test a plan when Stripe is in test mode or while keys are pending.
 
-- RLS checked from a signed-in session: users read only their own subscription, credits and ledger; no client-side balance writes.
-- Stripe test mode: checkout, plan change, cancellation, and a replayed webhook (no double credit).
-- Research: cached answer costs nothing, live run deducts exactly 1 credit, zero balance blocks with the upgrade prompt, Free account gets the single-pass path while Pro gets the deep loop.
-- Saved-case cap enforced server-side, not just hidden in the UI.
+### 4. Polish the Plans page
 
-## Follow-ups (tracked in roadmap.md at build time)
+- Highlight the current plan clearly.
+- Show "Your plan" vs "Choose" buttons correctly.
+- Add a one-line explanation that cached/saved answers are free.
+- Keep credit history list but format reasons as readable labels (`plan_grant`, `research`, etc.).
 
-- API access surface (keys, rate limits) for Expert and Business.
-- Team features (shared workspace, seats) for Business.
+### 5. End-to-end verification
+
+Run these checks from a signed-in session:
+
+1. **Cached answer is free:** run a known problem twice; second run has `usedLiveSearch: false`, balance unchanged.
+2. **Live research spends exactly 1 credit:** new problem with no cache -> balance drops by 1, `credit_transactions` records `research -1`.
+3. **Free plan is single-pass:** inspect sources count / briefing depth on a Free account; it should be smaller than deep research on Pro.
+4. **Saved-case cap blocks creation:** fill the Free limit (3), confirm `createNeed` throws the upgrade-or-delete message.
+5. **Out-of-credits state:** set balance to 0, request a new uncached problem, confirm the inline "Upgrade your plan" message appears and no credit is deducted.
+6. **Stripe test checkout (once keys are added):** complete a test subscription, verify `user_subscriptions` and `user_credits` update, portal opens, cancellation updates status.
+
+## Acceptance criteria
+
+- `bunx tsgo --noEmit` passes.
+- No runtime errors on `/needs`, `/need/:id`, or `/plans`.
+- A Free user can sign up, ask a problem, get a single-pass researched plan, and see credits decrement from 10 to 9.
+- A repeat of the same problem returns the cached answer at no cost.
+- A paid test checkout upgrades the plan and credits in the database.
+- API/team/priority features are not built yet and are documented as follow-ups.

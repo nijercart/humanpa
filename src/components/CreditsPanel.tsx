@@ -72,6 +72,22 @@ export function CreditsPanel({ compact = false }: { compact?: boolean }) {
         />
       </div>
 
+      <div
+        data-testid="daily-quota"
+        className="mt-3 flex items-baseline justify-between gap-3 rounded-md border border-rule/70 bg-background/60 px-3 py-2"
+      >
+        <p className="text-xs text-muted-foreground">
+          Today:{" "}
+          <span className="font-medium text-foreground">
+            {dailyRemaining} of {dailyLimit}
+          </span>{" "}
+          researches left
+        </p>
+        <p className="font-mono text-xs text-muted-foreground" title="Resets at midnight UTC">
+          resets in {countdown}
+        </p>
+      </div>
+
       {!compact ? (
         <p className="mt-3 text-xs text-muted-foreground">
           {savedCases} saved{" "}
@@ -80,23 +96,21 @@ export function CreditsPanel({ compact = false }: { compact?: boolean }) {
         </p>
       ) : null}
 
-      {empty ? (
-        <div className="mt-4">
+      <div className="mt-4 flex flex-wrap items-center gap-3">
+        <Button asChild size="sm" variant={empty || dailyRemaining <= 0 ? "default" : "outline"}>
+          <Link to="/plans">Buy more credits</Link>
+        </Button>
+        {empty ? (
           <p className="text-xs text-muted-foreground">
             You're out of credits for new live research.
           </p>
-          <Button asChild size="sm" className="mt-2">
-            <Link to="/plans">Get more credits</Link>
-          </Button>
-        </div>
-      ) : (
-        <Link
-          to="/plans"
-          className="mt-3 inline-block text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground"
-        >
-          Plans &amp; credits
-        </Link>
-      )}
+        ) : dailyRemaining <= 0 ? (
+          <p className="text-xs text-muted-foreground">
+            Daily research limit reached — resets in {countdown}.
+          </p>
+        ) : null}
+      </div>
+
     </div>
   );
 }

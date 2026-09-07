@@ -6,7 +6,6 @@ import { useCreditStatus } from "@/hooks/use-credit-status";
 /** Always-current view of the plan, credits left and saved-case usage. */
 export function CreditsPanel({ compact = false }: { compact?: boolean }) {
   const status = useCreditStatus();
-  const countdown = useCountdown(status.data?.resetsAt);
 
   if (status.isLoading || !status.data) {
     return (
@@ -26,13 +25,10 @@ export function CreditsPanel({ compact = false }: { compact?: boolean }) {
     savedCases,
     savedCaseLimit,
     deepResearch,
-    dailyLimit,
-    dailyRemaining,
   } = status.data;
   const used = Math.max(0, limit - remaining);
   const pct = limit > 0 ? Math.min(100, Math.round((used / limit) * 100)) : 100;
   const empty = remaining <= 0;
-
 
   return (
     <div data-testid="credits-panel" className="rounded-lg border border-rule bg-paper p-4">
@@ -57,22 +53,6 @@ export function CreditsPanel({ compact = false }: { compact?: boolean }) {
         />
       </div>
 
-      <div
-        data-testid="daily-quota"
-        className="mt-3 flex items-baseline justify-between gap-3 rounded-md border border-rule/70 bg-background/60 px-3 py-2"
-      >
-        <p className="text-xs text-muted-foreground">
-          Today:{" "}
-          <span className="font-medium text-foreground">
-            {dailyRemaining} of {dailyLimit}
-          </span>{" "}
-          researches left
-        </p>
-        <p className="font-mono text-xs text-muted-foreground" title="Resets at midnight UTC">
-          resets in {countdown}
-        </p>
-      </div>
-
       {!compact ? (
         <p className="mt-3 text-xs text-muted-foreground">
           {savedCases} saved{" "}
@@ -82,20 +62,15 @@ export function CreditsPanel({ compact = false }: { compact?: boolean }) {
       ) : null}
 
       <div className="mt-4 flex flex-wrap items-center gap-3">
-        <Button asChild size="sm" variant={empty || dailyRemaining <= 0 ? "default" : "outline"}>
+        <Button asChild size="sm" variant={empty ? "default" : "outline"}>
           <Link to="/plans">Buy more credits</Link>
         </Button>
         {empty ? (
           <p className="text-xs text-muted-foreground">
             You're out of credits for new live research.
           </p>
-        ) : dailyRemaining <= 0 ? (
-          <p className="text-xs text-muted-foreground">
-            Daily research limit reached — resets in {countdown}.
-          </p>
         ) : null}
       </div>
-
     </div>
   );
 }

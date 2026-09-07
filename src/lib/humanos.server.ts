@@ -185,8 +185,10 @@ export async function researchNeed(input: {
   restatedProblem: string;
   answers: { question: string; answer: string }[];
   intent?: { locale?: string; freshnessDays?: number; needsLiveData?: boolean };
-  /** When false (daily allowance used up) we answer from stored evidence or not at all. */
+  /** When false (no credits left) we answer from stored evidence or not at all. */
   allowLiveSearch?: boolean;
+  /** Paid plans get the multi-step agentic loop; Free gets one search pass. */
+  deepResearch?: boolean;
 }): Promise<ResearchOutcome> {
   const gateway = createLovableAiGatewayProvider(requireLovableApiKey());
   const collected = new Map<string, WebResult>();
@@ -211,11 +213,13 @@ export async function researchNeed(input: {
     throw new Error("QUOTA_EXHAUSTED");
   }
   const usedLiveSearch = !covered;
+  const deepResearch = input.deepResearch !== false;
 
   let briefing = "";
   const streamError: { error?: unknown } = {};
 
   if (usedLiveSearch) {
+    if (deepResearch) {
     const research = streamText({
       model: gateway(HUMANOS_MODEL),
       onError: ({ error }) => {

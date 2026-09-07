@@ -1,22 +1,7 @@
 import { Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { useCreditStatus } from "@/hooks/use-credit-status";
-
-function useCountdown(target?: string) {
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(id);
-  }, []);
-  if (!target) return "";
-  const ms = Math.max(0, new Date(target).getTime() - now);
-  const h = Math.floor(ms / 3_600_000);
-  const m = Math.floor((ms % 3_600_000) / 60_000);
-  const s = Math.floor((ms % 60_000) / 1000);
-  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
-}
 
 /** Always-current view of the plan, credits left and saved-case usage. */
 export function CreditsPanel({ compact = false }: { compact?: boolean }) {

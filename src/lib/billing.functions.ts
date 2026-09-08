@@ -44,10 +44,18 @@ export const getBillingSummary = createServerFn({ method: "POST" })
 
     if (plans.error) throw new Error(plans.error.message);
 
+    const reasonLabels: Record<string, string> = {
+      plan_grant: "Monthly plan credit grant",
+      research: "Live research",
+    };
+
     return {
       entitlements,
       plans: (plans.data ?? []) as PlanRow[],
-      ledger: ledger.data ?? [],
+      ledger: (ledger.data ?? []).map((entry) => ({
+        ...entry,
+        reason: reasonLabels[entry.reason] ?? entry.reason,
+      })),
     };
   });
 

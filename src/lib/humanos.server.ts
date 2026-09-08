@@ -263,7 +263,33 @@ export async function researchNeed(input: {
       },
     });
 
-    briefing = await readStreamText(research, streamError);
+      briefing = await readStreamText(research, streamError);
+    } else {
+      // Limited / Free plan: one search pass, then synthesize.
+      const query = `${input.restatedProblem} ${input.intent?.locale ?? ""}`.trim();
+      const searchResults = await webSearch(query);
+      for (const result of searchResults) collected.set(result.url, result);
+
+      const grounding = searchResults
+        .slice(0, 8)
+        .map((r) => `- ${r.title} (${r.url}):\n${r.snippet}`)
+        .join("\n\n");
+
+      const limited = streamText({
+        model: gateway(HUMANOS_MODEL),
+        onError: ({ error }) => {
+          streamError.error = error;
+        },
+        system: [
+          "You are HumanOS. Answer from the search results you are given.",
+          "Do not invent facts, prices, deadlines or URLs. If the results do not cover something, say so plainly.",
+          "Write a compact briefing: what is true, the realistic routes, what it costs, what to watch out for. Cite URLs inline.",
+          LANGUAGE_RULE,
+        ].join(" "),
+        prompt: `${context}\n\nSearch results:\n${grounding}\n\nWrite the briefing.`,
+      });
+      briefing = await readStreamText(limited, streamError);
+    }
   } else {
     // Cache path: summarize the stored evidence instead of paying for the web again.
     const grounding = reusedPassages

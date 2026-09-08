@@ -1,7 +1,7 @@
 # Roadmap
 
-## In progress
-- [ ] Stripe keys (`STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`) must be added before live checkout works.
+## Blocked (needs user action)
+- [ ] Stripe keys (`STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`) must be added before live checkout/portal works. Approval was declined; re-request when ready.
 
 ## Open
 - [ ] API access surface (keys, rate limits) for Expert and Business plans.
@@ -13,6 +13,4 @@
 - [x] Live credits/quota status panel with exact monthly balance and upgrade CTA.
 - [x] Free limited (single-pass) research and paid deep (agentic) research branching.
 - [x] Knowledge Flywheel cached-answer path verified (repeat run served from cache, no quota spent).
-
-## Done
-- [x] Knowledge Flywheel cached-answer path verified (repeat run served from cache, no quota spent).
+- [x] Friendly "out of AI credits" error message instead of raw "Payment Required".

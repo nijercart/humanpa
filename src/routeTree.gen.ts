@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AuthenticatedHistoryRouteImport } from './routes/_authenticated/history'
 import { Route as AuthenticatedNeedsRouteImport } from './routes/_authenticated/needs'
 import { Route as AuthenticatedPlansRouteImport } from './routes/_authenticated/plans'
 import { Route as AuthenticatedNeedNeedIdRouteImport } from './routes/_authenticated/need.$needId'
@@ -30,6 +31,11 @@ const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedHistoryRoute = AuthenticatedHistoryRouteImport.update({
+  id: '/history',
+  path: '/history',
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedNeedsRoute = AuthenticatedNeedsRouteImport.update({
   id: '/needs',
@@ -55,6 +61,7 @@ const ApiPublicStripeWebhookRoute = ApiPublicStripeWebhookRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/history': typeof AuthenticatedHistoryRoute
   '/needs': typeof AuthenticatedNeedsRoute
   '/plans': typeof AuthenticatedPlansRoute
   '/need/$needId': typeof AuthenticatedNeedNeedIdRoute
@@ -63,6 +70,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/history': typeof AuthenticatedHistoryRoute
   '/needs': typeof AuthenticatedNeedsRoute
   '/plans': typeof AuthenticatedPlansRoute
   '/need/$needId': typeof AuthenticatedNeedNeedIdRoute
@@ -73,6 +81,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
+  '/_authenticated/history': typeof AuthenticatedHistoryRoute
   '/_authenticated/needs': typeof AuthenticatedNeedsRoute
   '/_authenticated/plans': typeof AuthenticatedPlansRoute
   '/_authenticated/need/$needId': typeof AuthenticatedNeedNeedIdRoute
@@ -83,6 +92,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
+    | '/history'
     | '/needs'
     | '/plans'
     | '/need/$needId'
@@ -91,6 +101,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/auth'
+    | '/history'
     | '/needs'
     | '/plans'
     | '/need/$needId'
@@ -100,6 +111,7 @@ export interface FileRouteTypes {
     | '/'
     | '/_authenticated'
     | '/auth'
+    | '/_authenticated/history'
     | '/_authenticated/needs'
     | '/_authenticated/plans'
     | '/_authenticated/need/$needId'
@@ -136,6 +148,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/history': {
+      id: '/_authenticated/history'
+      path: '/history'
+      fullPath: '/history'
+      preLoaderRoute: typeof AuthenticatedHistoryRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/needs': {
       id: '/_authenticated/needs'
       path: '/needs'
@@ -168,12 +187,14 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedHistoryRoute: typeof AuthenticatedHistoryRoute
   AuthenticatedNeedsRoute: typeof AuthenticatedNeedsRoute
   AuthenticatedPlansRoute: typeof AuthenticatedPlansRoute
   AuthenticatedNeedNeedIdRoute: typeof AuthenticatedNeedNeedIdRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedHistoryRoute: AuthenticatedHistoryRoute,
   AuthenticatedNeedsRoute: AuthenticatedNeedsRoute,
   AuthenticatedPlansRoute: AuthenticatedPlansRoute,
   AuthenticatedNeedNeedIdRoute: AuthenticatedNeedNeedIdRoute,

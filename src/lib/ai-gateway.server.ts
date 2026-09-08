@@ -26,7 +26,7 @@ export function describeAiError(error: unknown): string {
   if (raw.includes("429") || /rate.?limit/i.test(raw)) {
     return "The AI service is busy right now. Wait a moment and try again — your need is saved.";
   }
-  if (raw.includes("402") || /not enough credits|payment_required/i.test(raw)) {
+  if (raw.includes("402") || /not enough credits|payment required|payment_required/i.test(raw)) {
     return "This workspace is out of AI credits, so the research couldn't run. Top up the AI credits and try again — your problem and answers are saved.";
   }
   return raw.slice(0, 400) || "The AI service returned an unexpected error.";

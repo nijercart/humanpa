@@ -144,6 +144,7 @@ export const runResearch = createServerFn({ method: "POST" })
         restatedProblem: need.restated_problem ?? need.raw_input,
         answers,
         allowLiveSearch,
+        deepResearch: entitlements.deepResearch,
         intent: {
           ...(need.intent_locale ? { locale: need.intent_locale } : {}),
           ...(typeof need.freshness_days === "number" ? { freshnessDays: need.freshness_days } : {}),

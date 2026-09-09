@@ -14,6 +14,11 @@ const RestateInput = z.object({
   restatedProblem: z.string().min(3),
 });
 const ToggleStepInput = z.object({ stepId: z.string().uuid(), done: z.boolean() });
+const SourceSnippetInput = z.object({
+  sourceId: z.string().uuid(),
+  snippet: z.string().max(8000),
+});
+
 
 export type ClarifyingQuestion = { id: string; question: string; why: string };
 
@@ -321,6 +326,19 @@ export const deleteNeed = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => NeedIdInput.parse(input))
   .handler(async ({ data, context }) => {
     const { error } = await context.supabase.from("needs").delete().eq("id", data.needId);
+    if (error) throw new Error(error.message);
+    return { ok: true as const };
+  });
+
+/** Let the owner correct or trim the saved passage kept for one source. */
+export const updateSourceSnippet = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => SourceSnippetInput.parse(input))
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase
+      .from("need_sources")
+      .update({ snippet: data.snippet })
+      .eq("id", data.sourceId);
     if (error) throw new Error(error.message);
     return { ok: true as const };
   });

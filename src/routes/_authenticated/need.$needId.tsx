@@ -301,7 +301,7 @@ function NeedDetail() {
         <div className="mt-10">
           <ActionPlan steps={steps} needId={needId} />
           <OptionsGrid options={options} />
-          <SourceList sources={sources} />
+          <SourceList sources={sources} needId={needId} />
         </div>
 
         {need.status === "ready" ? (

@@ -132,15 +132,22 @@ export async function ingestResults(
 export function passagesToSources(passages: KnowledgePassage[]): WebResult[] {
   const byUrl = new Map<string, WebResult>();
   for (const p of passages) {
-    if (byUrl.has(p.url)) continue;
-    byUrl.set(p.url, {
-      title: p.title,
-      url: p.url,
-      domain: p.domain,
-      snippet: p.content.slice(0, 600),
-      publishedDate: p.publishedDate,
-      isOfficial: p.isOfficial,
-    });
+    const existing = byUrl.get(p.url);
+    if (!existing) {
+      byUrl.set(p.url, {
+        title: p.title,
+        url: p.url,
+        domain: p.domain,
+        snippet: p.content.trim().slice(0, 2000),
+        publishedDate: p.publishedDate,
+        isOfficial: p.isOfficial,
+      });
+      continue;
+    }
+    // Keep several saved passages per page so cached answers stay detailed.
+    if (existing.snippet.length >= 2000) continue;
+    existing.snippet = `${existing.snippet}\n\n${p.content.trim()}`.slice(0, 2000);
   }
   return [...byUrl.values()];
 }
+

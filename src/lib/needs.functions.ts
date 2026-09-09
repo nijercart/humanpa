@@ -14,6 +14,11 @@ const RestateInput = z.object({
   restatedProblem: z.string().min(3),
 });
 const ToggleStepInput = z.object({ stepId: z.string().uuid(), done: z.boolean() });
+const SourceSnippetInput = z.object({
+  sourceId: z.string().uuid(),
+  snippet: z.string().max(8000),
+});
+
 
 export type ClarifyingQuestion = { id: string; question: string; why: string };
 

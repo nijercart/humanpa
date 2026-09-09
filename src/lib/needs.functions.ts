@@ -329,3 +329,16 @@ export const deleteNeed = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true as const };
   });
+
+/** Let the owner correct or trim the saved passage kept for one source. */
+export const updateSourceSnippet = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => SourceSnippetInput.parse(input))
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase
+      .from("need_sources")
+      .update({ snippet: data.snippet })
+      .eq("id", data.sourceId);
+    if (error) throw new Error(error.message);
+    return { ok: true as const };
+  });

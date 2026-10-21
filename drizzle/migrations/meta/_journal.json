@@ -29,6 +29,13 @@
       "when": 1792599628521,
       "tag": "0003_team_workspaces",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1792599653117,
+      "tag": "0004_fix_team_grant_event_id",
+      "breakpoints": true
     }
   ]
 }

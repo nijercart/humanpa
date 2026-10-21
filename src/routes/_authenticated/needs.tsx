@@ -247,6 +247,14 @@ function NeedsPage() {
                         {need.category || need.intent_domain}
                       </span>
                     )}
+                    {!need.isOwn && (
+                      <span
+                        data-testid={`team-badge-${need.id}`}
+                        className="mt-1 ml-1.5 inline-block rounded-full border border-rule px-2 py-0.5 text-[10px] uppercase tracking-wide text-muted-foreground"
+                      >
+                        Team
+                      </span>
+                    )}
                     <p className="mt-0.5 text-xs text-muted-foreground">
                       {STATUS_LABEL[need.status] ?? need.status} ·{" "}
                       {new Date(need.created_at).toLocaleDateString()}

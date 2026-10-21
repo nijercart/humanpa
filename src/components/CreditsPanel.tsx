@@ -25,6 +25,8 @@ export function CreditsPanel({ compact = false }: { compact?: boolean }) {
     savedCases,
     savedCaseLimit,
     deepResearch,
+    teamName,
+    teamBalance,
   } = status.data;
   const used = Math.max(0, limit - remaining);
   const pct = limit > 0 ? Math.min(100, Math.round((used / limit) * 100)) : 100;
@@ -58,6 +60,13 @@ export function CreditsPanel({ compact = false }: { compact?: boolean }) {
           {savedCases} saved{" "}
           {savedCaseLimit === null ? "cases (unlimited)" : `of ${savedCaseLimit} cases`} ·{" "}
           {deepResearch ? "deep research on" : "standard research"} · saved answers are free
+        </p>
+      ) : null}
+
+      {typeof teamBalance === "number" && !compact ? (
+        <p className="mt-1 text-xs text-muted-foreground" data-testid="team-pool">
+          Shared team pool ({teamName ?? "team"}): {teamBalance} credits — live research draws from
+          here first.
         </p>
       ) : null}
 

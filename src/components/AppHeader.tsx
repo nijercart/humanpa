@@ -41,6 +41,12 @@ export function AppHeader() {
               Plans &amp; credits
             </Link>
             <Link
+              to="/team"
+              className="text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+            >
+              Team
+            </Link>
+            <Link
               to="/api"
               className="text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
             >

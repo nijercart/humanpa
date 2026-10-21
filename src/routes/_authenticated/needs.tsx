@@ -179,7 +179,23 @@ function NeedsPage() {
                     <p className="mt-0.5 text-xs text-muted-foreground">
                       {STATUS_LABEL[need.status] ?? need.status} ·{" "}
                       {new Date(need.created_at).toLocaleDateString()}
+                      {need.stepsTotal ? (
+                        <>
+                          {" · "}
+                          <span className={need.stepsDone === need.stepsTotal ? "text-primary" : ""}>
+                            {need.stepsDone}/{need.stepsTotal} steps done
+                          </span>
+                        </>
+                      ) : null}
                     </p>
+                    {need.stepsTotal ? (
+                      <div className="mt-2 h-1 w-full max-w-xs overflow-hidden rounded-full bg-muted">
+                        <div
+                          className="h-full bg-primary transition-all"
+                          style={{ width: `${(need.stepsDone / need.stepsTotal) * 100}%` }}
+                        />
+                      </div>
+                    ) : null}
                   </Link>
                   <button
                     type="button"

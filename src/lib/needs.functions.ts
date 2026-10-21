@@ -279,11 +279,15 @@ export const listNeeds = createServerFn({ method: "POST" })
   .handler(async ({ context }) => {
     const { data, error } = await context.supabase
       .from("needs")
-      .select("id, title, raw_input, status, created_at")
+      .select("id, title, raw_input, status, created_at, need_steps(done)")
       .order("created_at", { ascending: false })
       .limit(50);
     if (error) throw new Error(error.message);
-    return data ?? [];
+    return (data ?? []).map(({ need_steps, ...need }) => ({
+      ...need,
+      stepsTotal: need_steps?.length ?? 0,
+      stepsDone: need_steps?.filter((s) => s.done).length ?? 0,
+    }));
   });
 
 export const getNeed = createServerFn({ method: "POST" })
@@ -315,7 +319,7 @@ export const toggleStep = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { error } = await context.supabase
       .from("need_steps")
-      .update({ done: data.done })
+      .update({ done: data.done, completed_at: data.done ? new Date().toISOString() : null })
       .eq("id", data.stepId);
     if (error) throw new Error(error.message);
     return { ok: true as const };

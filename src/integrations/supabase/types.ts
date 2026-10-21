@@ -14,6 +14,57 @@ export type Database = {
   }
   public: {
     Tables: {
+      api_keys: {
+        Row: {
+          created_at: string
+          id: string
+          key_hash: string
+          key_prefix: string
+          last_used_at: string | null
+          name: string
+          revoked_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          key_hash: string
+          key_prefix: string
+          last_used_at?: string | null
+          name?: string
+          revoked_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          key_hash?: string
+          key_prefix?: string
+          last_used_at?: string | null
+          name?: string
+          revoked_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      api_rate_buckets: {
+        Row: {
+          bucket: string
+          count: number
+          key_id: string
+        }
+        Insert: {
+          bucket: string
+          count?: number
+          key_id: string
+        }
+        Update: {
+          bucket?: string
+          count?: number
+          key_id?: string
+        }
+        Relationships: []
+      }
       credit_transactions: {
         Row: {
           created_at: string
@@ -342,6 +393,7 @@ export type Database = {
       needs: {
         Row: {
           assumptions: string[]
+          category: string | null
           clarifying_answers: Json
           clarifying_questions: Json
           created_at: string
@@ -354,6 +406,7 @@ export type Database = {
           raw_input: string
           recommendation: string | null
           restated_problem: string | null
+          search_vector: unknown
           status: string
           title: string | null
           updated_at: string
@@ -362,6 +415,7 @@ export type Database = {
         }
         Insert: {
           assumptions?: string[]
+          category?: string | null
           clarifying_answers?: Json
           clarifying_questions?: Json
           created_at?: string
@@ -374,6 +428,7 @@ export type Database = {
           raw_input: string
           recommendation?: string | null
           restated_problem?: string | null
+          search_vector?: unknown
           status?: string
           title?: string | null
           updated_at?: string
@@ -382,6 +437,7 @@ export type Database = {
         }
         Update: {
           assumptions?: string[]
+          category?: string | null
           clarifying_answers?: Json
           clarifying_questions?: Json
           created_at?: string
@@ -394,6 +450,7 @@ export type Database = {
           raw_input?: string
           recommendation?: string | null
           restated_problem?: string | null
+          search_vector?: unknown
           status?: string
           title?: string | null
           updated_at?: string
@@ -406,6 +463,7 @@ export type Database = {
         Row: {
           active: boolean
           api_access: boolean
+          api_rate_limit_per_hour: number
           code: string
           created_at: string
           deep_research: boolean
@@ -421,6 +479,7 @@ export type Database = {
         Insert: {
           active?: boolean
           api_access?: boolean
+          api_rate_limit_per_hour?: number
           code: string
           created_at?: string
           deep_research?: boolean
@@ -436,6 +495,7 @@ export type Database = {
         Update: {
           active?: boolean
           api_access?: boolean
+          api_rate_limit_per_hour?: number
           code?: string
           created_at?: string
           deep_research?: boolean
@@ -549,10 +609,12 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      bump_api_rate: { Args: { p_key: string }; Returns: number }
       current_entitlements: {
         Args: { p_user: string }
         Returns: {
           api_access: boolean
+          api_rate_limit_per_hour: number
           balance: number
           deep_research: boolean
           monthly_credits: number

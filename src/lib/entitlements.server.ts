@@ -10,6 +10,7 @@ export type Entitlements = {
   priorityProcessing: boolean;
   apiAccess: boolean;
   teamFeatures: boolean;
+  apiRateLimitPerHour: number;
   balance: number;
   periodStart: string;
 };
@@ -33,6 +34,7 @@ export async function loadEntitlements(userId: string): Promise<Entitlements> {
     priorityProcessing: row["priority_processing"] === true,
     apiAccess: row["api_access"] === true,
     teamFeatures: row["team_features"] === true,
+    apiRateLimitPerHour: Number(row["api_rate_limit_per_hour"] ?? 0),
     balance: Number(row["balance"] ?? 0),
     periodStart: String(row["period_start"] ?? new Date().toISOString()),
   };

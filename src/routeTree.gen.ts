@@ -12,11 +12,15 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AuthenticatedApiRouteImport } from './routes/_authenticated/api'
 import { Route as AuthenticatedHistoryRouteImport } from './routes/_authenticated/history'
 import { Route as AuthenticatedNeedsRouteImport } from './routes/_authenticated/needs'
 import { Route as AuthenticatedPlansRouteImport } from './routes/_authenticated/plans'
 import { Route as AuthenticatedNeedNeedIdRouteImport } from './routes/_authenticated/need.$needId'
 import { Route as ApiPublicStripeWebhookRouteImport } from './routes/api/public/stripe-webhook'
+import { Route as ApiPublicV1MeRouteImport } from './routes/api/public/v1/me'
+import { Route as ApiPublicV1NeedsRouteImport } from './routes/api/public/v1/needs'
+import { Route as ApiPublicV1NeedsNeedIdRouteImport } from './routes/api/public/v1/needs.$needId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -31,6 +35,11 @@ const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedApiRoute = AuthenticatedApiRouteImport.update({
+  id: '/api',
+  path: '/api',
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedHistoryRoute = AuthenticatedHistoryRouteImport.update({
   id: '/history',
@@ -57,65 +66,104 @@ const ApiPublicStripeWebhookRoute = ApiPublicStripeWebhookRouteImport.update({
   path: '/api/public/stripe-webhook',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicV1MeRoute = ApiPublicV1MeRouteImport.update({
+  id: '/api/public/v1/me',
+  path: '/api/public/v1/me',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicV1NeedsRoute = ApiPublicV1NeedsRouteImport.update({
+  id: '/api/public/v1/needs',
+  path: '/api/public/v1/needs',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicV1NeedsNeedIdRoute = ApiPublicV1NeedsNeedIdRouteImport.update({
+  id: '/$needId',
+  path: '/$needId',
+  getParentRoute: () => ApiPublicV1NeedsRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/api': typeof AuthenticatedApiRoute
   '/history': typeof AuthenticatedHistoryRoute
   '/needs': typeof AuthenticatedNeedsRoute
   '/plans': typeof AuthenticatedPlansRoute
   '/need/$needId': typeof AuthenticatedNeedNeedIdRoute
   '/api/public/stripe-webhook': typeof ApiPublicStripeWebhookRoute
+  '/api/public/v1/me': typeof ApiPublicV1MeRoute
+  '/api/public/v1/needs': typeof ApiPublicV1NeedsRouteWithChildren
+  '/api/public/v1/needs/$needId': typeof ApiPublicV1NeedsNeedIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/api': typeof AuthenticatedApiRoute
   '/history': typeof AuthenticatedHistoryRoute
   '/needs': typeof AuthenticatedNeedsRoute
   '/plans': typeof AuthenticatedPlansRoute
   '/need/$needId': typeof AuthenticatedNeedNeedIdRoute
   '/api/public/stripe-webhook': typeof ApiPublicStripeWebhookRoute
+  '/api/public/v1/me': typeof ApiPublicV1MeRoute
+  '/api/public/v1/needs': typeof ApiPublicV1NeedsRouteWithChildren
+  '/api/public/v1/needs/$needId': typeof ApiPublicV1NeedsNeedIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
+  '/_authenticated/api': typeof AuthenticatedApiRoute
   '/_authenticated/history': typeof AuthenticatedHistoryRoute
   '/_authenticated/needs': typeof AuthenticatedNeedsRoute
   '/_authenticated/plans': typeof AuthenticatedPlansRoute
   '/_authenticated/need/$needId': typeof AuthenticatedNeedNeedIdRoute
   '/api/public/stripe-webhook': typeof ApiPublicStripeWebhookRoute
+  '/api/public/v1/me': typeof ApiPublicV1MeRoute
+  '/api/public/v1/needs': typeof ApiPublicV1NeedsRouteWithChildren
+  '/api/public/v1/needs/$needId': typeof ApiPublicV1NeedsNeedIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
     | '/auth'
+    | '/api'
     | '/history'
     | '/needs'
     | '/plans'
     | '/need/$needId'
     | '/api/public/stripe-webhook'
+    | '/api/public/v1/me'
+    | '/api/public/v1/needs'
+    | '/api/public/v1/needs/$needId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/auth'
+    | '/api'
     | '/history'
     | '/needs'
     | '/plans'
     | '/need/$needId'
     | '/api/public/stripe-webhook'
+    | '/api/public/v1/me'
+    | '/api/public/v1/needs'
+    | '/api/public/v1/needs/$needId'
   id:
     | '__root__'
     | '/'
     | '/_authenticated'
     | '/auth'
+    | '/_authenticated/api'
     | '/_authenticated/history'
     | '/_authenticated/needs'
     | '/_authenticated/plans'
     | '/_authenticated/need/$needId'
     | '/api/public/stripe-webhook'
+    | '/api/public/v1/me'
+    | '/api/public/v1/needs'
+    | '/api/public/v1/needs/$needId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -123,6 +171,8 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
   ApiPublicStripeWebhookRoute: typeof ApiPublicStripeWebhookRoute
+  ApiPublicV1MeRoute: typeof ApiPublicV1MeRoute
+  ApiPublicV1NeedsRoute: typeof ApiPublicV1NeedsRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
@@ -147,6 +197,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/api': {
+      id: '/_authenticated/api'
+      path: '/api'
+      fullPath: '/api'
+      preLoaderRoute: typeof AuthenticatedApiRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/history': {
       id: '/_authenticated/history'
@@ -183,10 +240,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicStripeWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/v1/me': {
+      id: '/api/public/v1/me'
+      path: '/api/public/v1/me'
+      fullPath: '/api/public/v1/me'
+      preLoaderRoute: typeof ApiPublicV1MeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/v1/needs': {
+      id: '/api/public/v1/needs'
+      path: '/api/public/v1/needs'
+      fullPath: '/api/public/v1/needs'
+      preLoaderRoute: typeof ApiPublicV1NeedsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/v1/needs/$needId': {
+      id: '/api/public/v1/needs/$needId'
+      path: '/$needId'
+      fullPath: '/api/public/v1/needs/$needId'
+      preLoaderRoute: typeof ApiPublicV1NeedsNeedIdRouteImport
+      parentRoute: typeof ApiPublicV1NeedsRoute
+    }
   }
 }
 
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedApiRoute: typeof AuthenticatedApiRoute
   AuthenticatedHistoryRoute: typeof AuthenticatedHistoryRoute
   AuthenticatedNeedsRoute: typeof AuthenticatedNeedsRoute
   AuthenticatedPlansRoute: typeof AuthenticatedPlansRoute
@@ -194,6 +273,7 @@ interface AuthenticatedRouteRouteChildren {
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedApiRoute: AuthenticatedApiRoute,
   AuthenticatedHistoryRoute: AuthenticatedHistoryRoute,
   AuthenticatedNeedsRoute: AuthenticatedNeedsRoute,
   AuthenticatedPlansRoute: AuthenticatedPlansRoute,
@@ -203,11 +283,24 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
 const AuthenticatedRouteRouteWithChildren =
   AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
 
+interface ApiPublicV1NeedsRouteChildren {
+  ApiPublicV1NeedsNeedIdRoute: typeof ApiPublicV1NeedsNeedIdRoute
+}
+
+const ApiPublicV1NeedsRouteChildren: ApiPublicV1NeedsRouteChildren = {
+  ApiPublicV1NeedsNeedIdRoute: ApiPublicV1NeedsNeedIdRoute,
+}
+
+const ApiPublicV1NeedsRouteWithChildren =
+  ApiPublicV1NeedsRoute._addFileChildren(ApiPublicV1NeedsRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
   ApiPublicStripeWebhookRoute: ApiPublicStripeWebhookRoute,
+  ApiPublicV1MeRoute: ApiPublicV1MeRoute,
+  ApiPublicV1NeedsRoute: ApiPublicV1NeedsRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

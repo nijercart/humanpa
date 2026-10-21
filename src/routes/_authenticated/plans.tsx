@@ -104,8 +104,13 @@ function PlansPage() {
                   {money(plan.price_cents)}
                   <span className="text-sm text-muted-foreground"> /month</span>
                 </p>
+                <p className="mt-2 text-sm" data-testid={`plan-credits-${plan.code}`}>
+                  <span className="font-display text-2xl text-foreground">
+                    {plan.monthly_credits}
+                  </span>{" "}
+                  <span className="text-muted-foreground">credits per month</span>
+                </p>
                 <ul className="mt-4 space-y-1.5 text-sm text-muted-foreground">
-                  <li>{plan.monthly_credits} research credits</li>
                   <li>{plan.deep_research ? "Deep research" : "Standard research"}</li>
                   <li>Source citations</li>
                   <li>

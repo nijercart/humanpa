@@ -291,6 +291,7 @@ export type Database = {
       }
       need_steps: {
         Row: {
+          completed_at: string | null
           created_at: string
           detail: string | null
           done: boolean
@@ -303,6 +304,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          completed_at?: string | null
           created_at?: string
           detail?: string | null
           done?: boolean
@@ -315,6 +317,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          completed_at?: string | null
           created_at?: string
           detail?: string | null
           done?: boolean

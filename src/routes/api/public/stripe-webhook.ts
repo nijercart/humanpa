@@ -48,6 +48,12 @@ export const Route = createFileRoute("/api/public/stripe-webhook")({
             p_period_start: new Date().toISOString(),
             p_event_id: event.id,
           });
+          await supabaseAdmin.rpc("grant_team_credits", {
+            p_user: userId,
+            p_plan: planCode,
+            p_period_start: new Date().toISOString(),
+            p_event_id: event.id,
+          });
           return new Response("ok");
         }
 
@@ -62,6 +68,12 @@ export const Route = createFileRoute("/api/public/stripe-webhook")({
           if (!sub) return new Response("ok");
 
           await supabaseAdmin.rpc("grant_plan_credits", {
+            p_user: sub.user_id,
+            p_plan: sub.plan_code,
+            p_period_start: iso(object["period_start"]),
+            p_event_id: event.id,
+          });
+          await supabaseAdmin.rpc("grant_team_credits", {
             p_user: sub.user_id,
             p_plan: sub.plan_code,
             p_period_start: iso(object["period_start"]),

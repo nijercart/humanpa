@@ -344,7 +344,7 @@ export const getNeed = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => NeedIdInput.parse(input))
   .handler(async ({ data, context }) => {
-    const { supabase } = context;
+    const { supabase, userId } = context;
     const [need, sources, options, steps] = await Promise.all([
       supabase.from("needs").select("*").eq("id", data.needId).maybeSingle(),
       supabase.from("need_sources").select("*").eq("need_id", data.needId).order("position"),
@@ -360,6 +360,7 @@ export const getNeed = createServerFn({ method: "POST" })
 
     return {
       need: needRow,
+      isOwn: needRow.user_id === userId,
       sources: sources.data ?? [],
       options: options.data ?? [],
       steps: steps.data ?? [],

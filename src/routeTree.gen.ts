@@ -16,6 +16,7 @@ import { Route as AuthenticatedApiRouteImport } from './routes/_authenticated/ap
 import { Route as AuthenticatedHistoryRouteImport } from './routes/_authenticated/history'
 import { Route as AuthenticatedNeedsRouteImport } from './routes/_authenticated/needs'
 import { Route as AuthenticatedPlansRouteImport } from './routes/_authenticated/plans'
+import { Route as AuthenticatedTeamRouteImport } from './routes/_authenticated/team'
 import { Route as AuthenticatedNeedNeedIdRouteImport } from './routes/_authenticated/need.$needId'
 import { Route as ApiPublicStripeWebhookRouteImport } from './routes/api/public/stripe-webhook'
 import { Route as ApiPublicV1MeRouteImport } from './routes/api/public/v1/me'
@@ -56,6 +57,11 @@ const AuthenticatedPlansRoute = AuthenticatedPlansRouteImport.update({
   path: '/plans',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedTeamRoute = AuthenticatedTeamRouteImport.update({
+  id: '/team',
+  path: '/team',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedNeedNeedIdRoute = AuthenticatedNeedNeedIdRouteImport.update({
   id: '/need/$needId',
   path: '/need/$needId',
@@ -89,6 +95,7 @@ export interface FileRoutesByFullPath {
   '/history': typeof AuthenticatedHistoryRoute
   '/needs': typeof AuthenticatedNeedsRoute
   '/plans': typeof AuthenticatedPlansRoute
+  '/team': typeof AuthenticatedTeamRoute
   '/need/$needId': typeof AuthenticatedNeedNeedIdRoute
   '/api/public/stripe-webhook': typeof ApiPublicStripeWebhookRoute
   '/api/public/v1/me': typeof ApiPublicV1MeRoute
@@ -102,6 +109,7 @@ export interface FileRoutesByTo {
   '/history': typeof AuthenticatedHistoryRoute
   '/needs': typeof AuthenticatedNeedsRoute
   '/plans': typeof AuthenticatedPlansRoute
+  '/team': typeof AuthenticatedTeamRoute
   '/need/$needId': typeof AuthenticatedNeedNeedIdRoute
   '/api/public/stripe-webhook': typeof ApiPublicStripeWebhookRoute
   '/api/public/v1/me': typeof ApiPublicV1MeRoute
@@ -117,6 +125,7 @@ export interface FileRoutesById {
   '/_authenticated/history': typeof AuthenticatedHistoryRoute
   '/_authenticated/needs': typeof AuthenticatedNeedsRoute
   '/_authenticated/plans': typeof AuthenticatedPlansRoute
+  '/_authenticated/team': typeof AuthenticatedTeamRoute
   '/_authenticated/need/$needId': typeof AuthenticatedNeedNeedIdRoute
   '/api/public/stripe-webhook': typeof ApiPublicStripeWebhookRoute
   '/api/public/v1/me': typeof ApiPublicV1MeRoute
@@ -132,6 +141,7 @@ export interface FileRouteTypes {
     | '/history'
     | '/needs'
     | '/plans'
+    | '/team'
     | '/need/$needId'
     | '/api/public/stripe-webhook'
     | '/api/public/v1/me'
@@ -145,6 +155,7 @@ export interface FileRouteTypes {
     | '/history'
     | '/needs'
     | '/plans'
+    | '/team'
     | '/need/$needId'
     | '/api/public/stripe-webhook'
     | '/api/public/v1/me'
@@ -159,6 +170,7 @@ export interface FileRouteTypes {
     | '/_authenticated/history'
     | '/_authenticated/needs'
     | '/_authenticated/plans'
+    | '/_authenticated/team'
     | '/_authenticated/need/$needId'
     | '/api/public/stripe-webhook'
     | '/api/public/v1/me'
@@ -226,6 +238,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPlansRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/team': {
+      id: '/_authenticated/team'
+      path: '/team'
+      fullPath: '/team'
+      preLoaderRoute: typeof AuthenticatedTeamRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/need/$needId': {
       id: '/_authenticated/need/$needId'
       path: '/need/$needId'
@@ -269,6 +288,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedHistoryRoute: typeof AuthenticatedHistoryRoute
   AuthenticatedNeedsRoute: typeof AuthenticatedNeedsRoute
   AuthenticatedPlansRoute: typeof AuthenticatedPlansRoute
+  AuthenticatedTeamRoute: typeof AuthenticatedTeamRoute
   AuthenticatedNeedNeedIdRoute: typeof AuthenticatedNeedNeedIdRoute
 }
 
@@ -277,6 +297,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedHistoryRoute: AuthenticatedHistoryRoute,
   AuthenticatedNeedsRoute: AuthenticatedNeedsRoute,
   AuthenticatedPlansRoute: AuthenticatedPlansRoute,
+  AuthenticatedTeamRoute: AuthenticatedTeamRoute,
   AuthenticatedNeedNeedIdRoute: AuthenticatedNeedNeedIdRoute,
 }
 

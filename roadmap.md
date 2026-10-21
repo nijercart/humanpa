@@ -9,6 +9,7 @@
 - [ ] Priority processing queue for Pro and above.
 
 ## Done
+- [x] Persisted checklist completion: step ticks save with completion timestamps and progress bars on saved problems (verified end-to-end: tick → reload → still ticked, and untick → saved).
 - [x] Plans & credits: DB schema, entitlements, credit-gated research, Plans page with Stripe checkout plumbing.
 - [x] Live credits/quota status panel with exact monthly balance and upgrade CTA.
 - [x] Free limited (single-pass) research and paid deep (agentic) research branching.

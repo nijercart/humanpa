@@ -13,6 +13,9 @@ export type Entitlements = {
   apiRateLimitPerHour: number;
   balance: number;
   periodStart: string;
+  teamId: string | null;
+  teamName: string | null;
+  teamBalance: number | null;
 };
 
 /** Current plan + credit balance for a user, creating the Free record on first call. */

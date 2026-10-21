@@ -41,6 +41,8 @@ export const getResearchQuota = createServerFn({ method: "POST" })
       deepResearch: entitlements.deepResearch,
       savedCaseLimit: entitlements.savedCaseLimit,
       savedCases: count ?? 0,
+      teamName: entitlements.teamName,
+      teamBalance: entitlements.teamBalance,
     };
   });
 
@@ -117,8 +119,9 @@ export const runResearch = createServerFn({ method: "POST" })
     const { loadEntitlements } = await import("@/lib/entitlements.server");
     const entitlements = await loadEntitlements(userId);
     // A run only costs a credit when it has to hit the live web; answers served
-    // from the shared knowledge base are free.
-    const allowLiveSearch = entitlements.balance > 0;
+    // from the shared knowledge base are free. Team members draw on the shared pool.
+    const allowLiveSearch =
+      entitlements.balance > 0 || (entitlements.teamBalance ?? 0) > 0;
 
 
     const { data: need, error } = await supabase
@@ -274,27 +277,74 @@ export const updateProblem = createServerFn({ method: "POST" })
     return { ok: true as const };
   });
 
+const ListNeedsInput = z.object({
+  search: z.string().max(200).optional(),
+  category: z.string().max(60).optional(),
+});
+
 export const listNeeds = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    const { data, error } = await context.supabase
+  .inputValidator((input: unknown) => ListNeedsInput.parse(input ?? {}))
+  .handler(async ({ data, context }) => {
+    const search = data.search?.trim();
+    const category = data.category?.trim();
+
+    let query = context.supabase
       .from("needs")
-      .select("id, title, raw_input, status, created_at, need_steps(done)")
+      .select("id, title, raw_input, status, created_at, intent_domain, category, user_id, team_id, need_steps(done)")
       .order("created_at", { ascending: false })
       .limit(50);
+    if (search) query = query.textSearch("search_vector", search, { type: "websearch" });
+    if (category) query = query.or(`category.eq.${category},intent_domain.eq.${category}`);
+
+    const [{ data: rows, error }, { data: tagRows }] = await Promise.all([
+      query,
+      context.supabase.from("needs").select("category, intent_domain").limit(500),
+    ]);
     if (error) throw new Error(error.message);
-    return (data ?? []).map(({ need_steps, ...need }) => ({
-      ...need,
-      stepsTotal: need_steps?.length ?? 0,
-      stepsDone: need_steps?.filter((s) => s.done).length ?? 0,
-    }));
+
+    const categories = [
+      ...new Set((tagRows ?? []).map((row) => row.category || row.intent_domain).filter(Boolean)),
+    ] as string[];
+
+    return {
+      categories,
+      needs: (rows ?? []).map(({ need_steps, ...need }) => ({
+        ...need,
+        isOwn: need.user_id === context.userId,
+        isSharedToTeam: need.team_id !== null,
+        stepsTotal: need_steps?.length ?? 0,
+        stepsDone: need_steps?.filter((s) => s.done).length ?? 0,
+      })),
+    };
+  });
+
+const CategoryInput = z.object({ needId: z.string().uuid(), category: z.string().max(60) });
+
+/** Set or clear a short category tag on one saved need. */
+export const setCategory = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => CategoryInput.parse(input))
+  .handler(async ({ data, context }) => {
+    const category =
+      data.category
+        .replace(/[,\(\)"\\.]/g, " ")
+        .replace(/\s+/g, " ")
+        .trim()
+        .slice(0, 40) || null;
+    const { error } = await context.supabase
+      .from("needs")
+      .update({ category })
+      .eq("id", data.needId);
+    if (error) throw new Error(error.message);
+    return { category };
   });
 
 export const getNeed = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => NeedIdInput.parse(input))
   .handler(async ({ data, context }) => {
-    const { supabase } = context;
+    const { supabase, userId } = context;
     const [need, sources, options, steps] = await Promise.all([
       supabase.from("needs").select("*").eq("id", data.needId).maybeSingle(),
       supabase.from("need_sources").select("*").eq("need_id", data.needId).order("position"),
@@ -305,8 +355,12 @@ export const getNeed = createServerFn({ method: "POST" })
     if (need.error) throw new Error(need.error.message);
     if (!need.data) throw new Error("Need not found.");
 
+    // search_vector is an internal generated column; don't return it.
+    const { search_vector: _searchVector, ...needRow } = need.data;
+
     return {
-      need: need.data,
+      need: needRow,
+      isOwn: needRow.user_id === userId,
       sources: sources.data ?? [],
       options: options.data ?? [],
       steps: steps.data ?? [],

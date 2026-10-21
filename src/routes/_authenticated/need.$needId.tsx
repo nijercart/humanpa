@@ -12,7 +12,8 @@ import { SourceList } from "@/components/need/SourceList";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useCreditStatus } from "@/hooks/use-credit-status";
-import { getNeed, runResearch, updateProblem } from "@/lib/needs.functions";
+import { getNeed, runResearch, setCategory, updateProblem } from "@/lib/needs.functions";
+import { getTeam, shareNeedToTeam } from "@/lib/team.functions";
 
 
 type ClarifyingQuestion = { id: string; question: string; why: string };
@@ -103,6 +104,32 @@ function NeedDetail() {
     },
   });
 
+  const saveTag = useServerFn(setCategory);
+  const [tagEditing, setTagEditing] = useState(false);
+  const [tagDraft, setTagDraft] = useState("");
+  const tagMutation = useMutation({
+    mutationFn: (category: string) => saveTag({ data: { needId, category } }),
+    onSuccess: () => {
+      setTagEditing(false);
+      queryClient.invalidateQueries({ queryKey: ["need", needId] });
+      queryClient.invalidateQueries({ queryKey: ["needs"] });
+    },
+    onError: (error) =>
+      toast.error(error instanceof Error ? error.message : "Couldn't save that tag."),
+  });
+
+  const fetchTeam = useServerFn(getTeam);
+  const shareToTeam = useServerFn(shareNeedToTeam);
+  const shareMutation = useMutation({
+    mutationFn: (share: boolean) => shareToTeam({ data: { needId, share } }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["need", needId] });
+      queryClient.invalidateQueries({ queryKey: ["needs"] });
+    },
+    onError: (error) =>
+      toast.error(error instanceof Error ? error.message : "Couldn't update sharing."),
+  });
+
   if (query.isLoading) {
     return (
       <div className="min-h-screen">
@@ -126,7 +153,7 @@ function NeedDetail() {
     );
   }
 
-  const { need, sources, options, steps } = query.data;
+  const { need, sources, options, steps, isOwn } = query.data;
   const questions = (need.clarifying_questions ?? []) as ClarifyingQuestion[];
   const assumptions = (need.assumptions ?? []) as string[];
   const researching = need.status === "researching" || researchMutation.isPending;
@@ -150,6 +177,80 @@ function NeedDetail() {
         <h1 className="mt-8 font-display text-4xl leading-[1.15] text-foreground">
           {need.title ?? "Working it out"}
         </h1>
+
+        <div className="mt-3 flex items-center gap-2" data-testid="tag-row">
+          {tagEditing ? (
+            <form
+              className="flex items-center gap-2"
+              onSubmit={(event) => {
+                event.preventDefault();
+                tagMutation.mutate(tagDraft);
+              }}
+            >
+              <input
+                data-testid="tag-input"
+                value={tagDraft}
+                onChange={(event) => setTagDraft(event.target.value)}
+                placeholder="e.g. housing"
+                autoFocus
+                className="w-44 rounded-md border border-rule bg-paper px-2 py-1 text-xs text-foreground"
+              />
+              <Button type="submit" variant="outline" size="sm" disabled={tagMutation.isPending}>
+                Save
+              </Button>
+              <button
+                type="button"
+                onClick={() => setTagEditing(false)}
+                className="text-xs text-muted-foreground"
+              >
+                Cancel
+              </button>
+            </form>
+          ) : (need.category || need.intent_domain) ? (
+            <>
+              <span className="rounded-full border border-rule px-2 py-0.5 text-[10px] uppercase tracking-wide text-muted-foreground">
+                {need.category || need.intent_domain}
+              </span>
+              <button
+                type="button"
+                data-testid="tag-edit"
+                onClick={() => {
+                  setTagDraft(need.category ?? "");
+                  setTagEditing(true);
+                }}
+                className="text-xs text-muted-foreground hover:text-foreground"
+              >
+                {need.category ? "Edit tag" : "Keep a tag"}
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
+              data-testid="tag-add"
+              onClick={() => {
+                setTagDraft("");
+                setTagEditing(true);
+              }}
+              className="text-xs text-muted-foreground hover:text-foreground"
+            >
+              Add a tag
+            </button>
+          )}
+          {isOwn && !tagEditing ? (
+            <button
+              type="button"
+              data-testid="share-team"
+              onClick={() => shareMutation.mutate(!need.team_id)}
+              disabled={shareMutation.isPending}
+              className="text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+            >
+              {need.team_id ? "Unshare from team" : "Share with team"}
+            </button>
+          ) : null}
+          {!isOwn ? (
+            <span className="text-xs text-muted-foreground">Shared by a teammate</span>
+          ) : null}
+        </div>
 
         {need.status === "error" ? (
           <div className="mt-6 rounded-md border border-destructive/40 bg-destructive/5 p-4 text-sm">

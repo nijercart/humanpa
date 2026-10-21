@@ -47,6 +47,8 @@ export const getBillingSummary = createServerFn({ method: "POST" })
     const reasonLabels: Record<string, string> = {
       plan_grant: "Monthly plan credit grant",
       research: "Live research",
+      research_team: "Live research (team pool)",
+      team_grant: "Monthly team credit grant",
     };
 
     return {

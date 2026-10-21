@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -46,12 +46,32 @@ function NeedsPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [input, setInput] = useState("");
+  const [searchInput, setSearchInput] = useState("");
+  const [search, setSearch] = useState("");
+  const [category, setCategory] = useState<string | null>(null);
+
+  // Debounce the search box so typing doesn't refetch on every keystroke.
+  useEffect(() => {
+    const timer = setTimeout(() => setSearch(searchInput.trim()), 300);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
 
   const list = useServerFn(listNeeds);
   const create = useServerFn(createNeed);
   const remove = useServerFn(deleteNeed);
 
-  const needs = useQuery({ queryKey: ["needs"], queryFn: () => list({ data: undefined }) });
+  const needs = useQuery({
+    queryKey: ["needs", search, category],
+    queryFn: () =>
+      list({
+        data: {
+          ...(search ? { search } : {}),
+          ...(category ? { category } : {}),
+        },
+      }),
+  });
+  const rows = needs.data?.needs ?? [];
+  const categories = needs.data?.categories ?? [];
   const quota = useCreditStatus();
 
 
@@ -150,6 +170,49 @@ function NeedsPage() {
             Your problems
           </h2>
 
+          <input
+            data-testid="needs-search"
+            type="search"
+            value={searchInput}
+            onChange={(event) => setSearchInput(event.target.value)}
+            placeholder="Search your problems…"
+            className="mt-4 w-full rounded-md border border-rule bg-paper px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-foreground"
+          />
+
+          {categories.length ? (
+            <div className="mt-3 flex flex-wrap gap-2" data-testid="category-chips">
+              <button
+                type="button"
+                data-testid="category-chip-all"
+                onClick={() => setCategory(null)}
+                className={
+                  "rounded-full border px-3 py-1 text-xs transition-colors " +
+                  (category === null
+                    ? "border-foreground bg-foreground text-background"
+                    : "border-rule text-muted-foreground hover:border-foreground hover:text-foreground")
+                }
+              >
+                All
+              </button>
+              {categories.map((tag) => (
+                <button
+                  key={tag}
+                  type="button"
+                  data-testid={`category-chip-${tag}`}
+                  onClick={() => setCategory(category === tag ? null : tag)}
+                  className={
+                    "rounded-full border px-3 py-1 text-xs transition-colors " +
+                    (category === tag
+                      ? "border-foreground bg-foreground text-background"
+                      : "border-rule text-muted-foreground hover:border-foreground hover:text-foreground")
+                  }
+                >
+                  {tag}
+                </button>
+              ))}
+            </div>
+          ) : null}
+
           {needs.isError ? (
             <div
               data-testid="needs-error"
@@ -163,10 +226,10 @@ function NeedsPage() {
             </div>
           ) : needs.isLoading ? (
             <p className="mt-6 text-sm text-muted-foreground">Loading…</p>
-          ) : needs.data?.length ? (
+          ) : rows.length ? (
 
             <ul className="mt-4 divide-y divide-rule border-t border-rule">
-              {needs.data.map((need) => (
+              {rows.map((need) => (
                 <li key={need.id} className="group flex items-center gap-4 py-4">
                   <Link
                     to="/need/$needId"
@@ -176,6 +239,22 @@ function NeedsPage() {
                     <p className="truncate font-medium text-foreground">
                       {need.title ?? need.raw_input}
                     </p>
+                    {(need.category || need.intent_domain) && (
+                      <span
+                        data-testid={`need-tag-${need.id}`}
+                        className="mt-1 inline-block rounded-full border border-rule px-2 py-0.5 text-[10px] uppercase tracking-wide text-muted-foreground"
+                      >
+                        {need.category || need.intent_domain}
+                      </span>
+                    )}
+                    {!need.isOwn && (
+                      <span
+                        data-testid={`team-badge-${need.id}`}
+                        className="mt-1 ml-1.5 inline-block rounded-full border border-rule px-2 py-0.5 text-[10px] uppercase tracking-wide text-muted-foreground"
+                      >
+                        Team
+                      </span>
+                    )}
                     <p className="mt-0.5 text-xs text-muted-foreground">
                       {STATUS_LABEL[need.status] ?? need.status} ·{" "}
                       {new Date(need.created_at).toLocaleDateString()}
@@ -209,7 +288,9 @@ function NeedsPage() {
             </ul>
           ) : (
             <p className="mt-4 text-sm text-muted-foreground">
-              Nothing yet. The first thing you type above will show up here.
+              {search || category
+                ? "Nothing matches that search."
+                : "Nothing yet. The first thing you type above will show up here."}
             </p>
           )}
         </section>

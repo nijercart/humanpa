@@ -14,6 +14,57 @@ export type Database = {
   }
   public: {
     Tables: {
+      api_keys: {
+        Row: {
+          created_at: string
+          id: string
+          key_hash: string
+          key_prefix: string
+          last_used_at: string | null
+          name: string
+          revoked_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          key_hash: string
+          key_prefix: string
+          last_used_at?: string | null
+          name?: string
+          revoked_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          key_hash?: string
+          key_prefix?: string
+          last_used_at?: string | null
+          name?: string
+          revoked_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      api_rate_buckets: {
+        Row: {
+          bucket: string
+          count: number
+          key_id: string
+        }
+        Insert: {
+          bucket: string
+          count?: number
+          key_id: string
+        }
+        Update: {
+          bucket?: string
+          count?: number
+          key_id?: string
+        }
+        Relationships: []
+      }
       credit_transactions: {
         Row: {
           created_at: string
@@ -342,6 +393,7 @@ export type Database = {
       needs: {
         Row: {
           assumptions: string[]
+          category: string | null
           clarifying_answers: Json
           clarifying_questions: Json
           created_at: string
@@ -354,7 +406,9 @@ export type Database = {
           raw_input: string
           recommendation: string | null
           restated_problem: string | null
+          search_vector: unknown
           status: string
+          team_id: string | null
           title: string | null
           updated_at: string
           used_live_search: boolean
@@ -362,6 +416,7 @@ export type Database = {
         }
         Insert: {
           assumptions?: string[]
+          category?: string | null
           clarifying_answers?: Json
           clarifying_questions?: Json
           created_at?: string
@@ -374,7 +429,9 @@ export type Database = {
           raw_input: string
           recommendation?: string | null
           restated_problem?: string | null
+          search_vector?: unknown
           status?: string
+          team_id?: string | null
           title?: string | null
           updated_at?: string
           used_live_search?: boolean
@@ -382,6 +439,7 @@ export type Database = {
         }
         Update: {
           assumptions?: string[]
+          category?: string | null
           clarifying_answers?: Json
           clarifying_questions?: Json
           created_at?: string
@@ -394,18 +452,29 @@ export type Database = {
           raw_input?: string
           recommendation?: string | null
           restated_problem?: string | null
+          search_vector?: unknown
           status?: string
+          team_id?: string | null
           title?: string | null
           updated_at?: string
           used_live_search?: boolean
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "needs_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       plans: {
         Row: {
           active: boolean
           api_access: boolean
+          api_rate_limit_per_hour: number
           code: string
           created_at: string
           deep_research: boolean
@@ -421,6 +490,7 @@ export type Database = {
         Insert: {
           active?: boolean
           api_access?: boolean
+          api_rate_limit_per_hour?: number
           code: string
           created_at?: string
           deep_research?: boolean
@@ -436,6 +506,7 @@ export type Database = {
         Update: {
           active?: boolean
           api_access?: boolean
+          api_rate_limit_per_hour?: number
           code?: string
           created_at?: string
           deep_research?: boolean
@@ -478,6 +549,91 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      team_credits: {
+        Row: {
+          balance: number
+          period_start: string
+          team_id: string
+          updated_at: string
+        }
+        Insert: {
+          balance?: number
+          period_start?: string
+          team_id: string
+          updated_at?: string
+        }
+        Update: {
+          balance?: number
+          period_start?: string
+          team_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_credits_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: true
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      team_members: {
+        Row: {
+          created_at: string
+          id: string
+          role: string
+          team_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role?: string
+          team_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: string
+          team_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_members_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      teams: {
+        Row: {
+          created_at: string
+          id: string
+          invite_code: string
+          name: string
+          owner_user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          invite_code?: string
+          name: string
+          owner_user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          invite_code?: string
+          name?: string
+          owner_user_id?: string
+        }
+        Relationships: []
       }
       user_credits: {
         Row: {
@@ -549,10 +705,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      bump_api_rate: { Args: { p_key: string }; Returns: number }
+      create_team_with_pool: {
+        Args: { p_name: string; p_user: string }
+        Returns: string
+      }
       current_entitlements: {
         Args: { p_user: string }
         Returns: {
           api_access: boolean
+          api_rate_limit_per_hour: number
           balance: number
           deep_research: boolean
           monthly_credits: number
@@ -566,6 +728,15 @@ export type Database = {
         }[]
       }
       grant_plan_credits: {
+        Args: {
+          p_event_id: string
+          p_period_start: string
+          p_plan: string
+          p_user: string
+        }
+        Returns: boolean
+      }
+      grant_team_credits: {
         Args: {
           p_event_id: string
           p_period_start: string
@@ -595,6 +766,10 @@ export type Database = {
         }[]
       }
       spend_credit: {
+        Args: { p_need: string; p_user: string }
+        Returns: boolean
+      }
+      spend_credit_any: {
         Args: { p_need: string; p_user: string }
         Returns: boolean
       }

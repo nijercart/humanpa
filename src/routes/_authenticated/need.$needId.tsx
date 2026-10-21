@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useCreditStatus } from "@/hooks/use-credit-status";
 import { getNeed, runResearch, setCategory, updateProblem } from "@/lib/needs.functions";
+import { getTeam, shareNeedToTeam } from "@/lib/team.functions";
 
 
 type ClarifyingQuestion = { id: string; question: string; why: string };
@@ -117,6 +118,18 @@ function NeedDetail() {
       toast.error(error instanceof Error ? error.message : "Couldn't save that tag."),
   });
 
+  const fetchTeam = useServerFn(getTeam);
+  const shareToTeam = useServerFn(shareNeedToTeam);
+  const shareMutation = useMutation({
+    mutationFn: (share: boolean) => shareToTeam({ data: { needId, share } }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["need", needId] });
+      queryClient.invalidateQueries({ queryKey: ["needs"] });
+    },
+    onError: (error) =>
+      toast.error(error instanceof Error ? error.message : "Couldn't update sharing."),
+  });
+
   if (query.isLoading) {
     return (
       <div className="min-h-screen">
@@ -140,7 +153,7 @@ function NeedDetail() {
     );
   }
 
-  const { need, sources, options, steps } = query.data;
+  const { need, sources, options, steps, isOwn } = query.data;
   const questions = (need.clarifying_questions ?? []) as ClarifyingQuestion[];
   const assumptions = (need.assumptions ?? []) as string[];
   const researching = need.status === "researching" || researchMutation.isPending;
@@ -223,6 +236,20 @@ function NeedDetail() {
               Add a tag
             </button>
           )}
+          {isOwn && !tagEditing ? (
+            <button
+              type="button"
+              data-testid="share-team"
+              onClick={() => shareMutation.mutate(!need.team_id)}
+              disabled={shareMutation.isPending}
+              className="text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+            >
+              {need.team_id ? "Unshare from team" : "Share with team"}
+            </button>
+          ) : null}
+          {!isOwn ? (
+            <span className="text-xs text-muted-foreground">Shared by a teammate</span>
+          ) : null}
         </div>
 
         {need.status === "error" ? (

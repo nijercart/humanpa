@@ -408,6 +408,7 @@ export type Database = {
           restated_problem: string | null
           search_vector: unknown
           status: string
+          team_id: string | null
           title: string | null
           updated_at: string
           used_live_search: boolean
@@ -430,6 +431,7 @@ export type Database = {
           restated_problem?: string | null
           search_vector?: unknown
           status?: string
+          team_id?: string | null
           title?: string | null
           updated_at?: string
           used_live_search?: boolean
@@ -452,12 +454,21 @@ export type Database = {
           restated_problem?: string | null
           search_vector?: unknown
           status?: string
+          team_id?: string | null
           title?: string | null
           updated_at?: string
           used_live_search?: boolean
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "needs_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       plans: {
         Row: {
@@ -539,6 +550,91 @@ export type Database = {
           },
         ]
       }
+      team_credits: {
+        Row: {
+          balance: number
+          period_start: string
+          team_id: string
+          updated_at: string
+        }
+        Insert: {
+          balance?: number
+          period_start?: string
+          team_id: string
+          updated_at?: string
+        }
+        Update: {
+          balance?: number
+          period_start?: string
+          team_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_credits_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: true
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      team_members: {
+        Row: {
+          created_at: string
+          id: string
+          role: string
+          team_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role?: string
+          team_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: string
+          team_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_members_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      teams: {
+        Row: {
+          created_at: string
+          id: string
+          invite_code: string
+          name: string
+          owner_user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          invite_code?: string
+          name: string
+          owner_user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          invite_code?: string
+          name?: string
+          owner_user_id?: string
+        }
+        Relationships: []
+      }
       user_credits: {
         Row: {
           balance: number
@@ -610,6 +706,10 @@ export type Database = {
     }
     Functions: {
       bump_api_rate: { Args: { p_key: string }; Returns: number }
+      create_team_with_pool: {
+        Args: { p_name: string; p_user: string }
+        Returns: string
+      }
       current_entitlements: {
         Args: { p_user: string }
         Returns: {
@@ -628,6 +728,15 @@ export type Database = {
         }[]
       }
       grant_plan_credits: {
+        Args: {
+          p_event_id: string
+          p_period_start: string
+          p_plan: string
+          p_user: string
+        }
+        Returns: boolean
+      }
+      grant_team_credits: {
         Args: {
           p_event_id: string
           p_period_start: string
@@ -657,6 +766,10 @@ export type Database = {
         }[]
       }
       spend_credit: {
+        Args: { p_need: string; p_user: string }
+        Returns: boolean
+      }
+      spend_credit_any: {
         Args: { p_need: string; p_user: string }
         Returns: boolean
       }
